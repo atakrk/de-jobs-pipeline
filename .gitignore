@@ -3,6 +3,9 @@ data/raw/**
 !data/raw/.gitkeep
 data/processed/**
 
+# charts are output, but they are what the README shows
+!analysis/charts/*.png
+
 # python
 __pycache__/
 *.py[cod]
