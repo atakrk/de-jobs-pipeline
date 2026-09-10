@@ -91,8 +91,8 @@ def chart_skills(conn) -> None:
     ax.set_xticks([])
     strip_frame(ax)
     ax.set_title("Tools named in German data engineering postings",
-                 fontsize=13.5, color=INK, pad=14, loc="left")
-    ax.text(0, 1.015, "share of postings with a description",
+                 fontsize=13.5, color=INK, pad=30, loc="left")
+    ax.text(0, 1.012, "share of postings with a description",
             transform=ax.transAxes, fontsize=9.5, color=MUTED)
 
     fig.tight_layout()
