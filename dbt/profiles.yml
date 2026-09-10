@@ -1,0 +1,14 @@
+# Kept in the repo rather than ~/.dbt so the project is self-contained.
+# Credentials come from the environment; the defaults match docker-compose.
+de_jobs:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5433') | int }}"
+      user: "{{ env_var('PGUSER', 'jobs') }}"
+      password: "{{ env_var('PGPASSWORD', 'jobs') }}"
+      dbname: "{{ env_var('PGDATABASE', 'jobs') }}"
+      schema: analytics
+      threads: 4

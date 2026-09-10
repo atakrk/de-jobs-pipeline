@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: int_postings
+    description: One row per distinct posting, sources combined and deduplicated.
+    columns:
+      - name: posting_id
+        tests: [not_null]
+      - name: source
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["arbeitsagentur", "arbeitnow"]
+      - name: title
+        tests: [not_null]
+      - name: country
+        tests:
+          - accepted_values:
+              values: ["DEUTSCHLAND"]
+
+  - name: int_posting_skills
+    description: One row per posting-skill mention.
+    columns:
+      - name: posting_id
+        tests: [not_null]
+      - name: skill_key
+        tests:
+          - not_null
+          - relationships:
+              to: ref('skills')
+              field: skill_key
+
+  - name: mart_skill_frequency
+    description: Tool mention counts and share of postings.
+    columns:
+      - name: skill_key
+        tests: [not_null, unique]
+      - name: postings
+        tests: [not_null]
+
+  - name: mart_salary_by_skill
+    description: Advertised salary by tool, with the sample size beside it.
+    columns:
+      - name: skill_key
+        tests: [not_null, unique]
+      - name: postings_with_salary
+        tests: [not_null]
+
+  - name: mart_city_stats
+    description: Posting counts and advertised salary by city.
+
+  - name: mart_language_requirement
+    description: Share of postings that explicitly require German.
+    columns:
+      - name: source
+        tests: [not_null, unique]

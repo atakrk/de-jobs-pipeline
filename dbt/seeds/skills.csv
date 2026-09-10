@@ -1,0 +1,35 @@
+skill_key,display_name,category,pattern
+azure,Azure,cloud,azure
+aws,AWS,cloud,aws|amazon web services
+gcp,Google Cloud,cloud,gcp|google cloud
+databricks,Databricks,platform,databricks
+fabric,Microsoft Fabric,platform,microsoft fabric
+snowflake,Snowflake,warehouse,snowflake
+bigquery,BigQuery,warehouse,bigquery
+redshift,Redshift,warehouse,redshift
+synapse,Azure Synapse,warehouse,synapse
+dbt,dbt,transformation,dbt
+airflow,Airflow,orchestration,airflow
+dagster,Dagster,orchestration,dagster
+datafactory,Azure Data Factory,orchestration,data factory|adf
+spark,Spark,processing,spark|pyspark
+kafka,Kafka,streaming,kafka
+flink,Flink,streaming,flink
+python,Python,language,python
+sql,SQL,language,sql
+scala,Scala,language,scala
+java,Java,language,java
+oracle,Oracle,database,oracle
+postgres,PostgreSQL,database,postgres|postgresql
+sqlserver,SQL Server,database,sql server|mssql|t-sql
+mongodb,MongoDB,database,mongodb
+sap,SAP,platform,sap
+powerbi,Power BI,bi,power bi|powerbi
+tableau,Tableau,bi,tableau
+looker,Looker,bi,looker
+docker,Docker,platform,docker
+kubernetes,Kubernetes,platform,kubernetes|k8s
+terraform,Terraform,platform,terraform
+etl,ETL / ELT,concept,etl|elt
+warehouse,Data Warehouse,concept,data warehouse|datawarehouse|dwh
+lakehouse,Data Lake / Lakehouse,concept,data lake|delta lake|lakehouse

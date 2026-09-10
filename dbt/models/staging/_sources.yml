@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Untouched API payloads, one row per posting per ingest run.
+    tables:
+      - name: arbeitsagentur_postings
+        description: Listing results. Carries the salary range; carries no text.
+        columns:
+          - name: source_id
+            description: referenznummer, unique within a run.
+            tests: [not_null]
+      - name: arbeitsagentur_details
+        description: Per-posting detail. The only place the description text exists.
+        columns:
+          - name: source_id
+            tests: [not_null]
+      - name: arbeitnow_postings
+        description: Second source. Carries description text inline.
+        columns:
+          - name: source_id
+            tests: [not_null]
+      - name: ingest_runs
+        description: What each ingest run actually fetched.
