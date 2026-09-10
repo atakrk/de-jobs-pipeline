@@ -44,13 +44,15 @@ analysis/   charts built on the marts
 
 ## Running it
 
-Requires Docker and Python 3.10+.
+Requires Docker and Python 3.11 or newer (3.9 reached end of life and
+lacks wheels for some of these dependencies).
 
 ```bash
 cp .env.example .env
 docker compose up -d                  # Postgres on localhost:5433
 
-python -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 
 python ingest/arbeitsagentur.py --max-pages 5
