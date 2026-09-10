@@ -20,3 +20,6 @@ dbt/.user.yml
 .DS_Store
 .idea/
 .vscode/
+
+# private notes, kept locally on purpose
+ENGINEERING-LOG.md
