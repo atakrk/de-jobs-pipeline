@@ -14,6 +14,10 @@ models:
       - name: title
         tests: [not_null]
       - name: country
+        description: >
+          Null where the source does not state one (Arbeitnow). Any other
+          country is filtered out upstream, so a non-German value appearing
+          here means the scope filter has stopped working.
         tests:
           - accepted_values:
               values: ["DEUTSCHLAND"]

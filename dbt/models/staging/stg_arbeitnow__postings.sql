@@ -1,5 +1,10 @@
 -- Second source. Shape differs from the federal API, so it is normalised
 -- into the same column names here rather than in the union downstream.
+--
+-- This board covers the wider DACH/EU region and its payload states no
+-- country, only a free-text location. Country is therefore left null
+-- rather than assumed to be Germany: an assumption here would quietly put
+-- Austrian and Swiss vacancies inside figures reported as German.
 
 with source as (
 

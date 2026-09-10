@@ -49,7 +49,7 @@ arbeitnow as (
         employer,
         city,
         null::text           as region,
-        'DEUTSCHLAND'        as country,
+        null::text           as country,   -- unknown, see staging model
         null::numeric        as salary_from,
         null::numeric        as salary_to,
         null::boolean        as is_full_time,
@@ -70,14 +70,23 @@ unioned as (
 
 ),
 
--- The Arbeitnow feed is a general board, not a search: filter it down to the
--- roles this project is about. The federal rows already came from a search,
--- but the same filter keeps the definition of "in scope" in one place.
+-- Scope, defined in one place and visible rather than buried in a WHERE
+-- clause somewhere downstream. Two rules:
+--
+--   1. Role: the Arbeitnow feed is a general board, not a search, so it needs
+--      filtering to the roles this project is about. The federal rows already
+--      came from a search, but applying the same rule to both keeps a single
+--      definition of "in scope".
+--   2. Country: this project reports on the German market, so postings known
+--      to be elsewhere are excluded. Rows whose country is unknown are kept
+--      -- dropping them would silently discard the entire second source --
+--      and country_is_known carries that distinction downstream.
 in_scope as (
 
     select *
     from unioned
     where title ~* '(data|analytics|bi\M|business intelligence|etl)'
+      and (country is null or country = 'DEUTSCHLAND')
 
 ),
 
@@ -118,6 +127,7 @@ select
     city,
     region,
     country,
+    country is not null as country_is_known,
     salary_from,
     salary_to,
     is_full_time,
