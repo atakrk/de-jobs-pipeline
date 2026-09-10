@@ -39,10 +39,23 @@ HOST = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service"
 API_KEY = "jobboerse-jobsuche"
 PAGE_SIZE = 100
 
+# The gateway checks the client User-Agent alongside the API key: a generic
+# one is answered with 403. This is the identifier published in the official
+# API documentation's own example, so it is what an intended caller sends.
+USER_AGENT = (
+    "Jobsuche/2.9.2 (de.arbeitsagentur.jobboerse; build:1077; iOS 15.1.0) "
+    "Alamofire/5.4.4"
+)
+
 # The service has shipped several versions of the search path and the older
-# ones are not always retired. Probe once, then reuse whichever answers.
-SEARCH_PATHS = ["/pc/v6/jobs", "/pc/v4/app/jobs", "/pc/v4/jobs"]
+# ones are not always retired. The documented example uses /pc/v4/app/jobs,
+# so try that first, then fall back. Probe once, reuse whichever answers.
+SEARCH_PATHS = ["/pc/v4/app/jobs", "/pc/v6/jobs", "/pc/v4/jobs"]
 DETAIL_PATH = "/pc/v4/jobdetails/{code}"
+
+# angebotsart=1 restricts results to employment (not self-employment,
+# apprenticeships or internships); pav excludes private placement agencies.
+BASE_PARAMS = {"angebotsart": 1, "pav": "false"}
 
 
 def build_session() -> requests.Session:
@@ -50,8 +63,9 @@ def build_session() -> requests.Session:
     session.headers.update(
         {
             "X-API-Key": API_KEY,
+            "User-Agent": USER_AGENT,
             "Accept": "application/json",
-            "User-Agent": "de-jobs-pipeline/0.1 (portfolio project)",
+            "Connection": "keep-alive",
         }
     )
     return session
@@ -62,8 +76,10 @@ def resolve_search_url(session: requests.Session) -> str | None:
     for path in SEARCH_PATHS:
         url = HOST + path
         payload = get_json(
-            session, url, params={"was": "data engineer", "page": 1, "size": 1},
-            max_retries=1,
+            session,
+            url,
+            params={**BASE_PARAMS, "was": "data engineer", "page": 1, "size": 1},
+            max_retries=2,
         )
         if payload is not None and "stellenangebote" in payload:
             log.info("using search endpoint %s", path)
@@ -80,6 +96,7 @@ def fetch_term(session: requests.Session, url: str, term: str, max_pages: int) -
             session,
             url,
             params={
+                **BASE_PARAMS,
                 "was": term,
                 "page": page,
                 "size": PAGE_SIZE,

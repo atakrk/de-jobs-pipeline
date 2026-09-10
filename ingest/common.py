@@ -85,6 +85,7 @@ def get_json(
                     log.warning("response was not JSON: %s", response.text[:200])
                     return None
             if response.status_code == 404:
+                log.info("HTTP 404 for %s", response.url)
                 return None
             log.warning(
                 "HTTP %s (%s/%s) for %s",
