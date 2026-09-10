@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import base64
 import time
 
 import requests
@@ -44,6 +45,16 @@ API_KEY = "jobboerse-jobsuche"
 PAGE_SIZE = 100
 
 SEARCH_PATHS = ["/pc/v6/jobs", "/pc/v4/app/jobs", "/pc/v4/jobs"]
+
+# The listing carries no posting text, and the text is where tool names live.
+# The detail path has moved between versions and the id may or may not be
+# base64-encoded, so resolve both against a real posting instead of assuming.
+DETAIL_PATHS = [
+    "/pc/v6/jobdetails/{code}",
+    "/pc/v4/jobdetails/{code}",
+    "/pc/v2/jobdetails/{code}",
+]
+ID_FIELDS = ["referenznummer", "refnr", "hashId"]
 
 # Field carrying the postings array, newest naming first.
 RESULT_KEYS = ["ergebnisliste", "stellenangebote"]
@@ -113,10 +124,71 @@ def fetch_term(
     return pages
 
 
+def posting_id(posting: dict) -> str | None:
+    for field in ID_FIELDS:
+        value = posting.get(field)
+        if value:
+            return str(value)
+    return None
+
+
+def resolve_detail_url(
+    session: requests.Session, sample_id: str
+) -> tuple[str, bool] | None:
+    """Return (path_template, encode_base64) that returns a posting detail."""
+    encoded = base64.b64encode(sample_id.encode("utf-8")).decode("ascii")
+    for template in DETAIL_PATHS:
+        for use_base64, code in ((True, encoded), (False, sample_id)):
+            payload = get_json(
+                session, HOST + template.format(code=code), max_retries=1
+            )
+            if isinstance(payload, dict) and payload:
+                log.info("using detail path %s (base64=%s), fields: %s",
+                         template, use_base64, sorted(payload)[:10])
+                return template, use_base64
+    return None
+
+
+def fetch_details(
+    session: requests.Session,
+    template: str,
+    use_base64: bool,
+    ids: list[str],
+    directory,
+    limit: int,
+) -> int:
+    detail_dir = directory / "details"
+    detail_dir.mkdir(parents=True, exist_ok=True)
+
+    written = 0
+    for raw_id in ids[:limit]:
+        code = (
+            base64.b64encode(raw_id.encode("utf-8")).decode("ascii")
+            if use_base64
+            else raw_id
+        )
+        payload = get_json(session, HOST + template.format(code=code), max_retries=2)
+        if not isinstance(payload, dict):
+            continue
+        # base64 of the id is filesystem-safe; the raw id is not.
+        safe = base64.urlsafe_b64encode(raw_id.encode("utf-8")).decode("ascii")
+        write_json(detail_dir / f"{safe}.json", {"id": raw_id, "payload": payload})
+        written += 1
+        if written % 50 == 0:
+            log.info("details fetched: %d", written)
+        time.sleep(REQUEST_DELAY_SECONDS)
+
+    log.info("details written: %d", written)
+    return written
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--terms", nargs="*", default=SEARCH_TERMS)
     parser.add_argument("--max-pages", type=int, default=MAX_PAGES)
+    parser.add_argument("--with-details", action="store_true",
+                        help="also fetch posting text, where the tool names are")
+    parser.add_argument("--detail-limit", type=int, default=200)
     args = parser.parse_args()
 
     session = build_session()
@@ -131,6 +203,8 @@ def main() -> None:
     postings_seen = 0
     per_term: dict[str, int] = {}
 
+    ids: list[str] = []
+
     for term in args.terms:
         term_count = 0
         for payload in fetch_term(session, search_url, results_key, term, args.max_pages):
@@ -138,9 +212,30 @@ def main() -> None:
             write_json(directory / f"page_{file_index:04d}.json",
                        {"search_term": term, "results_key": results_key,
                         "payload": payload})
-            term_count += len(payload.get(results_key) or [])
+            for posting in payload.get(results_key) or []:
+                term_count += 1
+                found = posting_id(posting)
+                if found:
+                    ids.append(found)
         per_term[term] = term_count
         postings_seen += term_count
+
+    unique_ids = list(dict.fromkeys(ids))
+    details_written = 0
+    detail_template = None
+
+    if args.with_details and unique_ids:
+        resolved_detail = resolve_detail_url(session, unique_ids[0])
+        if resolved_detail is None:
+            log.warning("no detail path answered - skipping posting text")
+        else:
+            detail_template, use_base64 = resolved_detail
+            log.info("fetching details for %d unique postings (limit %d)",
+                     len(unique_ids), args.detail_limit)
+            details_written = fetch_details(
+                session, detail_template, use_base64, unique_ids,
+                directory, args.detail_limit,
+            )
 
     write_manifest(
         directory,
@@ -151,6 +246,9 @@ def main() -> None:
         files_written=file_index,
         postings_seen=postings_seen,
         postings_per_term=per_term,
+        unique_ids=len(unique_ids),
+        detail_path=detail_template,
+        details_written=details_written,
     )
     log.info("done: %d postings across %d files", postings_seen, file_index)
 
