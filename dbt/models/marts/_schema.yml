@@ -10,7 +10,8 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["arbeitsagentur", "arbeitnow"]
+              arguments:
+                values: ["arbeitsagentur", "arbeitnow"]
       - name: title
         tests: [not_null]
       - name: country
@@ -20,7 +21,8 @@ models:
           here means the scope filter has stopped working.
         tests:
           - accepted_values:
-              values: ["DEUTSCHLAND"]
+              arguments:
+                values: ["DEUTSCHLAND"]
 
   - name: int_posting_skills
     description: One row per posting-skill mention.
