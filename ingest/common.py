@@ -88,11 +88,12 @@ def get_json(
                 log.info("HTTP 404 for %s", response.url)
                 return None
             log.warning(
-                "HTTP %s (%s/%s) for %s",
+                "HTTP %s (%s/%s) for %s :: %s",
                 response.status_code,
                 attempt,
                 max_retries,
                 response.url,
+                response.text[:300].replace("\n", " ") or "<empty body>",
             )
         time.sleep(delay)
         delay *= 2

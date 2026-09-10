@@ -36,12 +36,16 @@ from common import (
 
 SOURCE = "arbeitsagentur"
 HOST = "https://rest.arbeitsagentur.de/jobboerse/jobsuche-service"
-API_KEY = "jobboerse-jobsuche"
 PAGE_SIZE = 100
 
-# The gateway checks the client User-Agent alongside the API key: a generic
-# one is answered with 403. This is the identifier published in the official
-# API documentation's own example, so it is what an intended caller sends.
+# The service is behind OAuth2 client credentials, not a static key. The
+# client id and secret below are the ones published in the official API
+# documentation for public use; the issued token goes in a header named
+# OAuthAccessToken rather than Authorization.
+TOKEN_URL = "https://rest.arbeitsagentur.de/oauth/gettoken_cc"
+CLIENT_ID = "c003a37f-024f-462a-b36d-b001be4cd24a"
+CLIENT_SECRET = "32a39620-32b3-4307-9aa1-511e3d7f48a8"
+
 USER_AGENT = (
     "Jobsuche/2.9.2 (de.arbeitsagentur.jobboerse; build:1077; iOS 15.1.0) "
     "Alamofire/5.4.4"
@@ -62,13 +66,47 @@ def build_session() -> requests.Session:
     session = requests.Session()
     session.headers.update(
         {
-            "X-API-Key": API_KEY,
             "User-Agent": USER_AGENT,
             "Accept": "application/json",
             "Connection": "keep-alive",
         }
     )
     return session
+
+
+def authenticate(session: requests.Session) -> bool:
+    """Fetch an access token and attach it to the session.
+
+    Tokens are short-lived JWTs. A run takes minutes, so one token per run
+    is enough; a long-running schedule would need to refresh on 401.
+    """
+    try:
+        response = session.post(
+            TOKEN_URL,
+            data={
+                "client_id": CLIENT_ID,
+                "client_secret": CLIENT_SECRET,
+                "grant_type": "client_credentials",
+            },
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        log.error("token request failed: %s", exc)
+        return False
+
+    if response.status_code != 200:
+        log.error("token endpoint returned HTTP %s :: %s",
+                  response.status_code, response.text[:300])
+        return False
+
+    token = (response.json() or {}).get("access_token")
+    if not token:
+        log.error("token endpoint returned no access_token: %s", response.text[:300])
+        return False
+
+    session.headers["OAuthAccessToken"] = token
+    log.info("authenticated (token length %d)", len(token))
+    return True
 
 
 def resolve_search_url(session: requests.Session) -> str | None:
@@ -158,6 +196,10 @@ def main() -> None:
     args = parser.parse_args()
 
     session = build_session()
+    if not authenticate(session):
+        log.error("could not authenticate against %s", TOKEN_URL)
+        raise SystemExit(1)
+
     search_url = resolve_search_url(session)
     if search_url is None:
         log.error("no known search endpoint answered - the API path has moved")
