@@ -1,0 +1,21 @@
+# data
+data/raw/**
+!data/raw/.gitkeep
+data/processed/**
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
