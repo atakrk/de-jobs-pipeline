@@ -55,8 +55,9 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
-python ingest/arbeitsagentur.py --max-pages 5
+python ingest/arbeitsagentur.py --max-pages 5 --with-details
 python ingest/arbeitnow.py --max-pages 5
+python load/load_raw.py
 ```
 
 Raw responses land in `data/raw/<source>/<date>/`, alongside a `_manifest.json`
@@ -65,7 +66,7 @@ recording what the run actually fetched.
 ## Roadmap
 
 - [x] Raw ingest from both sources, with retry, backoff and run manifests
-- [ ] Load raw JSON into Postgres
+- [x] Load raw JSON into Postgres
 - [ ] Cross-source deduplication
 - [ ] Skill extraction from posting text
 - [ ] dbt marts: tool frequency, city breakdown, German-language requirement
