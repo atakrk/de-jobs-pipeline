@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import random
 import time
 
 import requests
@@ -221,6 +222,17 @@ def main() -> None:
         postings_seen += term_count
 
     unique_ids = list(dict.fromkeys(ids))
+
+    # Shuffle before --detail-limit truncates. Ids arrive in search-term
+    # order, so taking the first n takes one search term's results almost
+    # exclusively -- and those terms differ in how tool-dense they are, which
+    # skews every downstream percentage in the same direction. A limit that
+    # truncates an ordered list is a sampling decision, not a throttle.
+    #
+    # Seeded by run date so a re-run of the same day fetches the same subset
+    # and the run stays reproducible.
+    random.Random(directory.name).shuffle(unique_ids)
+
     details_written = 0
     detail_template = None
 
@@ -249,6 +261,8 @@ def main() -> None:
         unique_ids=len(unique_ids),
         detail_path=detail_template,
         details_written=details_written,
+        detail_limit=args.detail_limit if args.with_details else None,
+        detail_sampling="random, seeded by run date",
     )
     log.info("done: %d postings across %d files", postings_seen, file_index)
 
