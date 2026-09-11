@@ -51,6 +51,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Check out the branch, not the triggering commit. A re-run of an
+          # older run would otherwise land on a detached HEAD behind main and
+          # fail at the push.
+          ref: main
 
       - uses: actions/setup-python@v7
         with:
@@ -86,7 +91,10 @@ jobs:
           git add data/snapshots analysis/charts
           if git diff --staged --quiet; then
             echo "nothing changed"
-          else
-            git commit -m "Daily run: $(date -u +%Y-%m-%d)"
-            git push
+            exit 0
           fi
+          git commit -m "Daily run: $(date -u +%Y-%m-%d)"
+          # main can have moved while this job ran -- it takes ten minutes and
+          # nobody stops working during it. Rebase rather than fail.
+          git pull --rebase origin main
+          git push origin HEAD:main
