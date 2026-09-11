@@ -11,27 +11,34 @@ job database, parsed, and counted.
 
 ## Findings
 
-First pass: 662 postings after scope filtering and deduplication, 414 of them
-carrying a description long enough to read requirements from. Numbers below are
-a snapshot, not a settled answer — see [Caveats](#caveats).
+669 postings after scope filtering and deduplication, 663 of them carrying a
+description long enough to read requirements from. Numbers below are a
+snapshot — see [Caveats](#caveats).
 
 ### Which tools the market asks for
 
 ![Tools named in German data engineering postings](analysis/charts/skill_frequency.png)
 
-Python (56.5%) and SQL (55.1%) are the floor, as expected. The interesting part
-is the cloud split:
+Python (49.3%) and SQL (47.5%) are the floor. The cloud split is the part worth
+reading closely:
 
 | | share of postings |
 | --- | --- |
-| Azure | **32.4%** |
-| AWS | 22.0% |
-| Google Cloud | 12.8% |
+| Azure | **28.8%** |
+| AWS | 20.2% |
+| Google Cloud | 13.6% |
 
-Azure appears roughly one and a half times as often as AWS, and Google Cloud
-trails both — consistent with DACH enterprises being Microsoft shops before
-they are cloud shops. Databricks (16.7%) sits ahead of both dbt and Snowflake
-(14.7% each), and Spark's 17.6% largely travels with it.
+Azure leads AWS by roughly **1.4×**. That ratio is the finding, not the
+absolute percentages: an earlier run over a third of this sample produced
+32.4% / 22.0% / 12.8% — different numbers, the same 1.4× gap. Databricks was
+similarly stable across both runs (16.7% then 16.4%).
+
+Two results look distinctly German. **SAP appears in 12.8%** of postings, and
+**Power BI in 16.3%** — ranking above Spark, dbt and Airflow. A US-based
+dataset would not produce that shape. It suggests a large share of what
+Germany labels "data engineering" is Microsoft-stack BI work sitting close to
+SAP systems, which is a different job from the one the title implies
+elsewhere.
 
 Read the percentages as a share of all postings, not as market share between
 clouds: most postings name no cloud at all, so among those that do, Azure's
@@ -41,34 +48,27 @@ lead is wider than the table suggests.
 
 ![How much of the market is gated on German](analysis/charts/language_requirement.png)
 
-44.3% of federal postings state an explicit German-language requirement. 29.5%
-of all postings mention English without stating a German requirement.
+**41.0%** of federal postings state an explicit German-language requirement.
+**215 of 663 postings (32.4%)** mention English without stating one.
 
-The two sources disagree sharply and both numbers are worth distrusting on
-their own: the federal database is the whole German market, while Arbeitnow is
-a self-selected set of internationally-oriented employers. Neither is
-representative alone.
-
-### What the roles advertise
-
-Median advertised salary clusters at **€65,000–80,000**. Per-tool differences
-in `mart_salary_by_skill` are not meaningful at these sample sizes — between
-four and twenty-one postings per tool — and the table reports its sample size
-beside every figure for exactly that reason.
-
-Fewer than one posting in five states a salary at all, and those that do skew
-public sector and large employers.
+The two sources disagree sharply and neither is representative alone: the
+federal database is the whole German market, while Arbeitnow is a self-selected
+set of internationally-oriented employers.
 
 ### Caveats
 
-- **Description coverage is 600 of 1,660 postings.** Skill counts describe
-  roughly a third of what was collected.
 - **The German figure is a floor.** Only explicit competency phrases are
   counted. A posting written in German that states no requirement but expects
-  German is invisible to this measure, and there are certainly many.
+  German is invisible to this measure, and there are many.
+- **Percentages moved by 3–7 points between runs.** An earlier, smaller sample
+  was not a random subset — it was the first *n* postings in search order,
+  which over-weighted the most tool-dense search term. Directions held;
+  magnitudes did not. Treat single-point percentages as approximate.
 - **Deduplication is approximate.** No shared identifier exists across sources,
-  so the key is employer plus title.
-- **One snapshot, one day.** Nothing here says anything about a trend yet.
+  so the key is employer plus title. 1,660 unique federal postings reduce to
+  669 after the role filter and deduplication together, and that split has not
+  been measured.
+- **One snapshot.** Two run dates are now stored, which is not yet a trend.
 
 ## Why this project
 
