@@ -67,7 +67,7 @@ jobs:
 
       - name: Ingest
         run: |
-          python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 400
+          python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 900
           python ingest/arbeitnow.py --max-pages 5
 
       - name: Load
