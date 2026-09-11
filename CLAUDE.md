@@ -1,0 +1,89 @@
+# Working in this repository
+
+A pipeline that measures what German data engineering job postings ask for.
+Two public job APIs into Postgres, modelled with dbt, running daily on GitHub
+Actions. The README holds the findings; this file holds the conventions.
+
+## Layout
+
+```
+ingest/     API clients, one per source. Write untouched responses only.
+load/       raw JSON -> Postgres as jsonb. No reshaping here.
+dbt/        staging -> intermediate -> marts
+analysis/   charts, snapshot export, and audits kept next to what they audit
+```
+
+## Running it
+
+```bash
+source .venv/bin/activate          # Python 3.12
+docker compose up -d               # Postgres on localhost:5433
+python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 1660
+python ingest/arbeitnow.py --max-pages 5
+python load/load_raw.py
+cd dbt && dbt build --profiles-dir .
+cd .. && python analysis/make_charts.py
+```
+
+dbt needs `--profiles-dir .` — `profiles.yml` lives in the repo, not `~/.dbt`.
+
+## Conventions that are decisions, not habits
+
+**The raw layer is immutable and unflattened.** API responses land as `jsonb`
+exactly as returned. Field mapping happens in dbt, where it is versioned and
+reviewable, never in the Python loader. Everything downstream must be
+reproducible from the JSON on disk.
+
+**Grain is `(source_id, run_date)`.** Reruns of a day update in place; days
+accumulate. Do not collapse this to one row per posting.
+
+**Skill patterns live in `dbt/seeds/skills.csv`, never in SQL.** Adding a tool
+is a data change. Patterns match with word boundaries (`\m...\M`) — without
+them `sql` matches inside `postgresql`.
+
+**Every rate carries its denominator.** `mart_skill_frequency` reports
+`postings_with_text` beside every percentage. `mart_salary_by_skill` suppresses
+any tool under three observations. `mart_language_requirement` suppresses
+per-source rows under thirty postings. Do not remove these guards to make a
+table look fuller.
+
+**Never assert a value the source did not give.** Two bugs in this project came
+from that: a hardcoded country on a source that states none, and then a filter
+that permitted null and admitted London and Paris into a German dataset.
+Unknown is a real outcome — model it, exclude it deliberately, and count it.
+
+**Any limit that truncates an ordered list is a sampling decision.** Shuffle
+before truncating, and record the limit and the method in the run manifest.
+`--detail-limit` silently skewed every published percentage twice before this
+rule existed.
+
+**Do not scrape.** Both sources are public APIs. Keep it that way: no
+LinkedIn, no Indeed, no headless browsers.
+
+**Do not disable TLS verification.** Community docs for the federal API suggest
+it. The handshake works fine.
+
+## Things deliberately not built
+
+- **Airflow** — this is one linear sequence on a timer, which is what cron is
+  for. Revisit only if the job stops being one sequence.
+- **Kafka** — the data is batch. Nothing streams.
+- **A web framework for the personal site** — separate repo, one static file
+  on purpose.
+
+Adding any of these because they look good on a CV is the failure mode this
+project is explicitly avoiding.
+
+## Commit messages
+
+Explain why, not what — the diff shows what. When a change reverses an earlier
+decision, say what changed in the evidence. Several commits here read as short
+postmortems; match that register rather than "fix bug".
+
+Do not add Co-Authored-By or any assistant attribution. Commits are Ata's.
+
+## Before publishing a number
+
+The README is the deliverable, and a wrong percentage in it is worse than a
+broken build. Anything published needs its denominator, its sample size, and a
+caveat where the measurement is a floor rather than a ceiling.
