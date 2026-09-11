@@ -34,6 +34,7 @@ MUTED = "#898781"
 GRID = "#e1e0d9"
 SERIES_1 = "#2a78d6"
 SERIES_2 = "#eb6834"
+NEUTRAL = "#c3c2b7"
 
 plt.rcParams.update({
     "font.family": "sans-serif",
@@ -102,45 +103,57 @@ def chart_skills(conn) -> None:
 
 
 def chart_language(conn) -> None:
+    """One population, three outcomes.
+
+    This chart used to compare the two sources side by side. That comparison
+    died when the second source was validated down to the postings actually
+    located in Germany -- about a dozen -- and a percentage over twelve rows
+    does not belong beside one over six hundred. What replaced it says more
+    anyway: of everything in the German market sample, how much states a
+    German requirement, how much mentions English without one, and how much
+    says nothing either way.
+    """
     with conn.cursor() as cur:
         cur.execute("""
-            select source, postings, requires_german
+            select postings, requires_german, english_without_german
             from analytics_marts.mart_language_requirement
-            where source <> 'ALL'
-            order by postings desc
+            where population = 'ALL'
         """)
-        rows = cur.fetchall()
+        total, german, english = cur.fetchone()
 
-    labels = {"arbeitsagentur": "Bundesagentur für Arbeit\n(federal database)",
-              "arbeitnow": "Arbeitnow\n(international board)"}
-    names = [labels.get(r[0], r[0]) for r in rows][::-1]
-    totals = [r[1] for r in rows][::-1]
-    german = [r[2] for r in rows][::-1]
+    neither = total - german - english
+    # Label ink is chosen per segment: white reads on the two saturated
+    # fills and disappears on the neutral one.
+    parts = [
+        ("Explicitly requires German", german, SERIES_1, "white"),
+        ("Mentions English, no German requirement", english, SERIES_2, "white"),
+        ("Neither stated", neither, NEUTRAL, INK),
+    ]
 
-    pct_german = [100.0 * g / t for g, t in zip(german, totals)]
-    pct_other = [100.0 - p for p in pct_german]
+    fig, ax = plt.subplots(figsize=(9, 2.5))
 
-    fig, ax = plt.subplots(figsize=(9, 3.1))
-    ax.barh(names, pct_german, height=0.5, color=SERIES_1,
-            label="Explicitly requires German")
-    ax.barh(names, pct_other, height=0.5, left=[p + 0.6 for p in pct_german],
-            color=SERIES_2, label="No explicit requirement")
+    left = 0.0
+    for label, count, colour, ink in parts:
+        pct = 100.0 * count / total
+        ax.barh([""], [pct], left=left, height=0.42, color=colour, label=label)
+        if pct > 6:
+            ax.text(left + pct / 2, 0, f"{pct:.0f}%", va="center", ha="center",
+                    fontsize=11, color=ink, weight="bold")
+        left += pct + 0.5
 
-    for y, (pg, total) in enumerate(zip(pct_german, totals)):
-        ax.text(pg / 2, y, f"{pg:.0f}%", va="center", ha="center",
-                fontsize=10, color="white", weight="bold")
-        ax.text(101.5, y, f"n={total}", va="center", ha="left",
-                fontsize=9.5, color=MUTED)
+    ax.text(left + 1.5, 0, f"n={total}", va="center", ha="left",
+            fontsize=9.5, color=MUTED)
 
     ax.set_xlim(0, 112)
     ax.set_xticks([])
+    ax.set_yticks([])
     strip_frame(ax, keep_left=False)
-    ax.set_title("How much of the market is gated on German",
-                 fontsize=13.5, color=INK, pad=26, loc="left")
-    ax.text(0, 1.10, "a floor, not a ceiling: only explicit competency phrases are counted",
+    ax.set_title("How much of the German market is gated on German",
+                 fontsize=13.5, color=INK, pad=30, loc="left")
+    ax.text(0, 1.22, "a floor, not a ceiling: only explicit competency phrases are counted",
             transform=ax.transAxes, fontsize=9.5, color=MUTED)
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.3), ncol=2,
-              frameon=False, fontsize=9.5, labelcolor=INK_SECONDARY)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.62), ncol=3,
+              frameon=False, fontsize=9, labelcolor=INK_SECONDARY)
 
     fig.tight_layout()
     fig.savefig(OUT_DIR / "language_requirement.png", dpi=180,

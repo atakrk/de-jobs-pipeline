@@ -11,9 +11,9 @@ job database, parsed, and counted.
 
 ## Findings
 
-669 postings after scope filtering and deduplication, 663 of them carrying a
-description long enough to read requirements from. Numbers below are a
-snapshot — see [Caveats](#caveats).
+633 postings after scope filtering, location validation and deduplication,
+627 of them carrying a description long enough to read requirements from.
+Numbers below are a snapshot — see [Caveats](#caveats).
 
 ### Which tools the market asks for
 
@@ -48,12 +48,14 @@ lead is wider than the table suggests.
 
 ![How much of the market is gated on German](analysis/charts/language_requirement.png)
 
-**41.0%** of federal postings state an explicit German-language requirement.
-**215 of 663 postings (32.4%)** mention English without stating one.
+**40%** state an explicit German-language requirement. **31%** mention English
+without stating one. The remaining **28%** say nothing about language either
+way — which is not evidence of either, and is shown separately rather than
+folded into the friendlier number.
 
-The two sources disagree sharply and neither is representative alone: the
-federal database is the whole German market, while Arbeitnow is a self-selected
-set of internationally-oriented employers.
+The federal figure on its own is 41.0%. The second source is too small after
+location validation to report separately, and the mart suppresses per-source
+rows below thirty postings for that reason.
 
 ### Caveats
 
@@ -64,10 +66,17 @@ set of internationally-oriented employers.
   was not a random subset — it was the first *n* postings in search order,
   which over-weighted the most tool-dense search term. Directions held;
   magnitudes did not. Treat single-point percentages as approximate.
-- **Deduplication is approximate.** No shared identifier exists across sources,
-  so the key is employer plus title. 1,660 unique federal postings reduce to
-  669 after the role filter and deduplication together, and that split has not
-  been measured.
+- **Deduplication turned out to be a minor effect**, and it was audited rather
+  than assumed: `analysis/dedup_audit.sql` splits the funnel. The role filter
+  removes 1,596 rows; deduplication merges 32. The large reduction is the
+  scope filter doing its job, since the API's search is fuzzy and returns
+  loosely related postings.
+- **The second source is DACH/EU-wide, not German**, and states no country.
+  Across its full feed, 224 postings resolve as foreign, 213 as German and 157
+  as unknown. Locations are validated against German place names taken from
+  the federal database itself, and only verified-German rows are kept — twelve
+  of them. Everything here is the German market by construction, not by
+  assumption.
 - **One snapshot.** Two run dates are now stored, which is not yet a trend.
 
 ## Why this project

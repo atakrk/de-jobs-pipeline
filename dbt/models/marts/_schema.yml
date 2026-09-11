@@ -16,13 +16,33 @@ models:
         tests: [not_null]
       - name: country
         description: >
-          Null where the source does not state one (Arbeitnow). Any other
-          country is filtered out upstream, so a non-German value appearing
-          here means the scope filter has stopped working.
+          Always DEUTSCHLAND. Federal rows state it; Arbeitnow rows have it
+          resolved from location text. Anything else here, null included,
+          means the scope filter has stopped working.
         tests:
+          - not_null
           - accepted_values:
               arguments:
                 values: ["DEUTSCHLAND"]
+
+  - name: int_german_cities
+    description: German place names derived from the federal database, used to
+      validate the second source's free-text locations.
+    columns:
+      - name: city_norm
+        tests: [not_null, unique]
+
+  - name: int_arbeitnow_geo
+    description: Country resolved per Arbeitnow posting - DEUTSCHLAND, FOREIGN,
+      or null where the location says only "Remote".
+    columns:
+      - name: posting_id
+        tests: [not_null, unique]
+      - name: resolved_country
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["DEUTSCHLAND", "FOREIGN"]
 
   - name: int_posting_skills
     description: One row per posting-skill mention.
@@ -56,7 +76,11 @@ models:
     description: Posting counts and advertised salary by city.
 
   - name: mart_language_requirement
-    description: Share of postings that explicitly require German.
+    description: >
+      Share of postings that explicitly require German. Per-source rows appear
+      only above a minimum sample size; the ALL row always reports.
     columns:
-      - name: source
+      - name: population
         tests: [not_null, unique]
+      - name: postings
+        tests: [not_null]

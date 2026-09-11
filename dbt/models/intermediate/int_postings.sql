@@ -42,23 +42,24 @@ with arbeitsagentur as (
 arbeitnow as (
 
     select
-        posting_id,
+        p.posting_id,
         'arbeitnow'          as source,
-        run_date,
-        title,
-        employer,
-        city,
+        p.run_date,
+        p.title,
+        p.employer,
+        p.city,
         null::text           as region,
-        null::text           as country,   -- unknown, see staging model
+        g.resolved_country   as country,   -- derived, see int_arbeitnow_geo
         null::numeric        as salary_from,
         null::numeric        as salary_to,
         null::boolean        as is_full_time,
-        published_at,
-        description,
-        allows_home_office,
+        p.published_at,
+        p.description,
+        p.allows_home_office,
         null::boolean        as is_temp_agency
 
-    from {{ ref('stg_arbeitnow__postings') }}
+    from {{ ref('stg_arbeitnow__postings') }} p
+    left join {{ ref('int_arbeitnow_geo') }} g using (posting_id)
 
 ),
 
@@ -77,16 +78,21 @@ unioned as (
 --      filtering to the roles this project is about. The federal rows already
 --      came from a search, but applying the same rule to both keeps a single
 --      definition of "in scope".
---   2. Country: this project reports on the German market, so postings known
---      to be elsewhere are excluded. Rows whose country is unknown are kept
---      -- dropping them would silently discard the entire second source --
---      and country_is_known carries that distinction downstream.
+--   2. Country: this project reports on the German market, so a posting is
+--      kept only where Germany is established -- stated by the source, or
+--      resolved from the location text against known German place names.
+--
+--      An earlier version kept unknown-country rows instead, reasoning that
+--      dropping them would discard the whole second source. Measurement
+--      settled it: over half the second source's surviving rows were in
+--      London and Paris. A dataset that reports on Germany cannot keep rows
+--      it merely hopes are German, so unknown is now excluded and counted.
 in_scope as (
 
     select *
     from unioned
     where title ~* '(data|analytics|bi\M|business intelligence|etl)'
-      and (country is null or country = 'DEUTSCHLAND')
+      and country = 'DEUTSCHLAND'
 
 ),
 
@@ -127,7 +133,6 @@ select
     city,
     region,
     country,
-    country is not null as country_is_known,
     salary_from,
     salary_to,
     is_full_time,
