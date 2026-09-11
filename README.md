@@ -108,9 +108,19 @@ replay.
 ```
 ingest/     API clients, one per source, writing untouched responses
 load/       raw JSON -> Postgres
-dbt/        staging -> intermediate (dedup, skill parsing) -> marts
-analysis/   charts built on the marts
+dbt/        staging -> intermediate (dedup, geo, skill parsing) -> marts
+analysis/   charts, snapshot export, and the audits behind two decisions
 ```
+
+It runs itself. A [scheduled workflow](.github/workflows/daily.yml) ingests,
+loads, builds and tests every morning, then commits the marts as dated CSVs
+under `data/snapshots/`. A CI database is created and destroyed with the job,
+so the history lives in git instead — and those files accumulate into the time
+series a single run can never produce.
+
+The schedule is not really about fresh data. It is that dbt's tests run daily
+against a live third-party API: if the source changes shape, the build goes
+red and says so, rather than the numbers quietly drifting.
 
 ## Running it
 
@@ -148,7 +158,8 @@ recording what the run actually fetched.
 - [x] Skill extraction from posting text
 - [x] dbt marts: tool frequency, city breakdown, German-language requirement
 - [x] Charts and findings
-- [ ] Daily orchestration with Airflow
+- [x] Daily scheduled run, with dbt's tests running against the live API
+- [ ] Airflow, if and when the job stops being one linear sequence
 - [ ] Port the dbt models to Databricks
 
 ## Licence

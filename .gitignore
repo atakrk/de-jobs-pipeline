@@ -3,6 +3,9 @@ data/raw/**
 !data/raw/.gitkeep
 data/processed/**
 
+# snapshots are the time series, and small enough to keep
+!data/snapshots/**
+
 # charts are output, but they are what the README shows
 !analysis/charts/*.png
 
