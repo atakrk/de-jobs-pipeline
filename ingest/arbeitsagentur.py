@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import json
 import random
 import time
 
@@ -31,6 +32,7 @@ import requests
 
 from common import (
     MAX_PAGES,
+    RAW_DIR,
     REQUEST_DELAY_SECONDS,
     SEARCH_TERMS,
     get_json,
@@ -133,17 +135,60 @@ def posting_id(posting: dict) -> str | None:
     return None
 
 
+def detail_answers(
+    session: requests.Session, template: str, use_base64: bool, sample_id: str
+) -> dict | None:
+    """One request: does this template and encoding return a posting?"""
+    code = (
+        base64.b64encode(sample_id.encode("utf-8")).decode("ascii")
+        if use_base64
+        else sample_id
+    )
+    payload = get_json(session, HOST + template.format(code=code), max_retries=1)
+    return payload if isinstance(payload, dict) and payload else None
+
+
+def cached_detail_config() -> tuple[str, bool] | None:
+    """The path and encoding a previous run recorded, most recent first."""
+    manifests = sorted((RAW_DIR / SOURCE).glob("*/_manifest.json"), reverse=True)
+    for path in manifests:
+        try:
+            data = json.loads(path.read_text("utf-8"))
+        except (OSError, ValueError):
+            continue
+        template = data.get("detail_path")
+        if template:
+            return template, bool(data.get("detail_base64", True))
+    return None
+
+
 def resolve_detail_url(
     session: requests.Session, sample_id: str
 ) -> tuple[str, bool] | None:
-    """Return (path_template, encode_base64) that returns a posting detail."""
-    encoded = base64.b64encode(sample_id.encode("utf-8")).decode("ascii")
+    """Return (path_template, encode_base64) that returns a posting detail.
+
+    Probing all six combinations costs five failed requests before the
+    working one, every run, to rediscover an answer the last run already
+    wrote down. So try the cached answer first -- but *verify* it with one
+    real request rather than trusting it.
+
+    Caching without verification would be the worse bug: the endpoint moves,
+    the cached path keeps being used, every detail request fails, and the run
+    reports zero descriptions with nothing in the log explaining why. One
+    request is a cheap price for the cache being self-correcting.
+    """
+    cached = cached_detail_config()
+    if cached:
+        template, use_base64 = cached
+        if detail_answers(session, template, use_base64, sample_id):
+            log.info("using cached detail path %s (base64=%s)", template, use_base64)
+            return template, use_base64
+        log.info("cached detail path %s no longer answers - probing", template)
+
     for template in DETAIL_PATHS:
-        for use_base64, code in ((True, encoded), (False, sample_id)):
-            payload = get_json(
-                session, HOST + template.format(code=code), max_retries=1
-            )
-            if isinstance(payload, dict) and payload:
+        for use_base64 in (True, False):
+            payload = detail_answers(session, template, use_base64, sample_id)
+            if payload:
                 log.info("using detail path %s (base64=%s), fields: %s",
                          template, use_base64, sorted(payload)[:10])
                 return template, use_base64
@@ -235,17 +280,18 @@ def main() -> None:
 
     details_written = 0
     detail_template = None
+    detail_base64 = None
 
     if args.with_details and unique_ids:
         resolved_detail = resolve_detail_url(session, unique_ids[0])
         if resolved_detail is None:
             log.warning("no detail path answered - skipping posting text")
         else:
-            detail_template, use_base64 = resolved_detail
+            detail_template, detail_base64 = resolved_detail
             log.info("fetching details for %d unique postings (limit %d)",
                      len(unique_ids), args.detail_limit)
             details_written = fetch_details(
-                session, detail_template, use_base64, unique_ids,
+                session, detail_template, detail_base64, unique_ids,
                 directory, args.detail_limit,
             )
 
@@ -260,6 +306,7 @@ def main() -> None:
         postings_per_term=per_term,
         unique_ids=len(unique_ids),
         detail_path=detail_template,
+        detail_base64=detail_base64,
         details_written=details_written,
         detail_limit=args.detail_limit if args.with_details else None,
         detail_sampling="random, seeded by run date",
