@@ -1,0 +1,36 @@
+version: 2
+
+seeds:
+  - name: skills
+    description: >
+      The tools this project counts, and the patterns that find them. Kept as
+      data rather than SQL so adding a tool reviews as a one-line diff. Every
+      pattern is matched with word boundaries.
+    columns:
+      - name: skill_key
+        description: Stable identifier, used as the join key everywhere downstream.
+        tests: [not_null, unique]
+      - name: display_name
+        description: How the tool is named in charts and the README.
+        tests: [not_null]
+      - name: category
+        description: cloud, platform, warehouse, transformation, orchestration, processing, streaming, language, database, bi, concept.
+        tests: [not_null]
+      - name: pattern
+        description: >
+          Regex alternation, lowercase, no anchors - the caller adds word
+          boundaries. Short patterns are the risky ones and are sampled
+          against real matched text in analysis/skill_audit.sql.
+        tests: [not_null]
+
+  - name: city_aliases
+    description: >
+      English and French exonyms for German cities. No German posting spells
+      it "Munich", but an international job board does, so the place-name list
+      derived from the federal database needs these added to it.
+    columns:
+      - name: alias
+        description: The foreign-language spelling to also accept.
+        tests: [not_null, unique]
+      - name: note
+        description: Which German city it refers to, for a human reading the seed.

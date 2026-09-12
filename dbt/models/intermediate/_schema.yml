@@ -1,0 +1,138 @@
+version: 2
+
+models:
+  - name: int_german_cities
+    description: >
+      German place names, derived from the federal database itself. The second
+      source states no country, so something has to decide whether
+      "Dusseldorf" and "Manchester" belong in a dataset about Germany. Rather
+      than hand-maintaining a list or paying a geocoder, this collects the
+      place names the federal job database already reports, plus a small seed
+      of English exonyms. The dataset validates itself.
+    columns:
+      - name: city_norm
+        description: >
+          Lowercased with umlauts folded, so "Düsseldorf" and "Dusseldorf"
+          compare equal. Names under four characters and names carrying
+          punctuation are excluded - they false-match, and they are
+          interpolated into a regex downstream.
+        tests: [not_null, unique]
+
+  - name: int_arbeitnow_geo
+    description: >
+      Country resolved per second-source posting. Three outcomes, and the
+      third is deliberate: DEUTSCHLAND, FOREIGN, or null where the location
+      says only "Remote". Unknown stays unknown rather than being assumed
+      German - assuming is what put London and Paris inside figures reported
+      as the German market.
+    columns:
+      - name: posting_id
+        description: The board's slug.
+        tests: [not_null, unique]
+      - name: raw_location
+        description: The original free-text location, kept so a verdict can be checked.
+      - name: has_foreign_marker
+        description: >
+          Whether an explicit non-German country or capital appears. Takes
+          precedence over a city match, so "Frankfurt, USA" cannot pass on the
+          strength of one word.
+      - name: matches_german_place
+        description: Whether any known German place name appears in the location text.
+      - name: resolved_country
+        description: The verdict. Null means genuinely unknown, and is excluded upstream.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["DEUTSCHLAND", "FOREIGN"]
+
+  - name: int_postings
+    description: >
+      One row per distinct posting, both sources combined. Attaches the
+      description to the listing, keeps the latest run per posting, and
+      deduplicates across sources on employer plus title. The cross-source key
+      is approximate because no shared identifier exists; the source column is
+      kept so the effect stays measurable, and analysis/dedup_audit.sql
+      measures it.
+    columns:
+      - name: posting_id
+        description: Identifier within its own source, not globally unique.
+        tests: [not_null]
+      - name: source
+        description: Which board the surviving row came from.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["arbeitsagentur", "arbeitnow"]
+      - name: run_date
+        description: The ingest run this posting was last seen in.
+      - name: title
+        description: Posting title. Also what the scope filter matches against.
+        tests: [not_null]
+      - name: employer
+        description: Company name. Half of the deduplication key.
+      - name: city
+        description: First listed location.
+      - name: region
+        description: Federal state, where the source states one.
+      - name: country
+        description: >
+          Always DEUTSCHLAND. Federal rows state it; second-source rows have
+          it resolved from location text. Anything else here, null included,
+          means the scope filter has stopped working - which is why null is
+          forbidden rather than merely unexpected.
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["DEUTSCHLAND"]
+      - name: salary_from
+        description: Lower bound of the advertised range. Federal source only.
+      - name: salary_to
+        description: Upper bound of the advertised range. Federal source only.
+      - name: is_full_time
+        description: Full-time flag, where stated.
+      - name: published_at
+        description: First publication date.
+      - name: description
+        description: Posting text. Null where the detail was not fetched this run.
+      - name: allows_home_office
+        description: Remote flag, from whichever source provided one.
+      - name: is_temp_agency
+        description: Whether the role is placement through an agency.
+      - name: requires_german
+        description: >
+          Whether an explicit German-competency phrase appears. A posting
+          merely written in German does not count - that would make the answer
+          100% and tell nobody anything. This measure is a floor.
+      - name: mentions_english
+        description: Whether English is mentioned at all. Not the same as English being accepted.
+      - name: description_length
+        description: >
+          Characters of posting text. Used downstream to exclude stubs, which
+          carry no requirements and would deflate every percentage.
+
+  - name: int_posting_skills
+    description: >
+      One row per posting-skill mention. Patterns live in a seed rather than
+      in this SQL, so adding a tool is a data change reviewable as a one-line
+      diff. Matching uses word boundaries: without them "sql" matches inside
+      "postgresql". Verified against real matched text in
+      analysis/skill_audit.sql - 32 sampled contexts, zero false positives.
+    columns:
+      - name: posting_id
+        description: The posting whose description contained the match.
+        tests: [not_null]
+      - name: source
+        description: Which board the posting came from.
+      - name: skill_key
+        description: Stable identifier for the tool, joining to the seed.
+        tests:
+          - not_null
+          - relationships:
+              to: ref('skills')
+              field: skill_key
+      - name: display_name
+        description: Human-readable tool name, as it appears in charts.
+      - name: category
+        description: cloud, platform, warehouse, language, orchestration, bi, concept.

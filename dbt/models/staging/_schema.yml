@@ -1,0 +1,105 @@
+version: 2
+
+models:
+  - name: stg_arbeitsagentur__postings
+    description: >
+      Federal listing rows, flattened out of jsonb. One row per posting per
+      ingest run. This is where salary lives; the listing carries no
+      description text, so it has to be joined to the detail model before a
+      posting is complete.
+    columns:
+      - name: posting_id
+        description: The API's referenznummer. Unique within a run, not across runs.
+      - name: run_date
+        description: Which ingest run this row came from. Half of the table's grain.
+      - name: search_term
+        description: >
+          Which query returned this posting. Kept because the terms differ in
+          how tool-dense their results are, which has skewed figures before.
+      - name: title
+        description: Posting title as advertised, usually carrying (m/w/d).
+      - name: occupation
+        description: The API's own occupation classification for the role.
+      - name: employer
+        description: Company name as the employer entered it, not normalised.
+      - name: salary_from
+        description: >
+          Lower bound of the advertised annual range, where one is given.
+          Fewer than one posting in five states a salary at all.
+      - name: salary_to
+        description: Upper bound of the advertised annual range.
+      - name: salary_basis
+        description: Whether the figure is annual, monthly or unstated.
+      - name: city
+        description: >
+          First listed location. A posting can name several; location_count
+          says how many, so "Berlin" can be told from "Berlin plus four".
+      - name: postcode
+        description: Postal code of the first listed location.
+      - name: region
+        description: Federal state (Bundesland) of the first listed location.
+      - name: country
+        description: Stated by this source, unlike the second one.
+      - name: location_count
+        description: How many locations the posting lists.
+      - name: published_at
+        description: First publication date.
+      - name: changed_at
+        description: Last modification timestamp, used to keep the newest run.
+      - name: is_full_time
+        description: Whether full-time hours are offered.
+      - name: contract_duration
+        description: Permanent, fixed-term, or unstated.
+      - name: suits_career_changers
+        description: Employer's own flag for whether the role suits a career changer.
+
+  - name: stg_arbeitsagentur__details
+    description: >
+      Federal detail rows. The description is the point of this table: it is
+      the only field in the entire API that names the tools a job actually
+      uses, and every skill figure in the project derives from it.
+    columns:
+      - name: posting_id
+        description: Joins to the listing model on the same referenznummer.
+      - name: run_date
+        description: Which ingest run fetched this detail.
+      - name: description
+        description: >
+          Full posting text, in German and lightly marked up. Skill patterns
+          are matched against this with word boundaries.
+      - name: allows_home_office
+        description: Stated on the detail only, never on the listing.
+      - name: is_temp_agency
+        description: >
+          Whether the employer is placing the worker with a third party
+          (Arbeitnehmerüberlassung). Changes what the posting means.
+      - name: is_private_placement
+        description: Whether a private placement agency posted it.
+
+  - name: stg_arbeitnow__postings
+    description: >
+      Second source, normalised into the same column names as the federal one.
+      Shape differs and so does coverage: this board is DACH/EU-wide and its
+      payload states no country at all, only a free-text location.
+    columns:
+      - name: posting_id
+        description: The board's slug, unique per posting.
+      - name: run_date
+        description: Which ingest run this row came from.
+      - name: title
+        description: Posting title, English or German.
+      - name: employer
+        description: Company name as the board recorded it.
+      - name: description
+        description: Posting text, carried inline here rather than on a detail call.
+      - name: city
+        description: >
+          Free text, and inconsistently formatted - "Berlin", "London Office",
+          "9th arrondissement of Paris". int_arbeitnow_geo resolves a country
+          from it rather than trusting it.
+      - name: allows_home_office
+        description: The board's own remote flag.
+      - name: url
+        description: Link back to the posting on the board.
+      - name: published_at
+        description: Creation date, converted from a unix timestamp.

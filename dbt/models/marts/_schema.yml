@@ -1,86 +1,106 @@
 version: 2
 
 models:
-  - name: int_postings
-    description: One row per distinct posting, sources combined and deduplicated.
-    columns:
-      - name: posting_id
-        tests: [not_null]
-      - name: source
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ["arbeitsagentur", "arbeitnow"]
-      - name: title
-        tests: [not_null]
-      - name: country
-        description: >
-          Always DEUTSCHLAND. Federal rows state it; Arbeitnow rows have it
-          resolved from location text. Anything else here, null included,
-          means the scope filter has stopped working.
-        tests:
-          - not_null
-          - accepted_values:
-              arguments:
-                values: ["DEUTSCHLAND"]
-
-  - name: int_german_cities
-    description: German place names derived from the federal database, used to
-      validate the second source's free-text locations.
-    columns:
-      - name: city_norm
-        tests: [not_null, unique]
-
-  - name: int_arbeitnow_geo
-    description: Country resolved per Arbeitnow posting - DEUTSCHLAND, FOREIGN,
-      or null where the location says only "Remote".
-    columns:
-      - name: posting_id
-        tests: [not_null, unique]
-      - name: resolved_country
-        tests:
-          - accepted_values:
-              arguments:
-                values: ["DEUTSCHLAND", "FOREIGN"]
-
-  - name: int_posting_skills
-    description: One row per posting-skill mention.
-    columns:
-      - name: posting_id
-        tests: [not_null]
-      - name: skill_key
-        tests:
-          - not_null
-          - relationships:
-              to: ref('skills')
-              field: skill_key
-
   - name: mart_skill_frequency
-    description: Tool mention counts and share of postings.
+    description: >
+      How often each tool is named, and in what share of postings. The
+      denominator is postings that HAVE a description, not all postings -
+      dividing by rows that could never have matched would understate
+      everything.
     columns:
       - name: skill_key
+        description: Stable tool identifier.
         tests: [not_null, unique]
+      - name: display_name
+        description: Tool name as shown in charts and the README.
+      - name: category
+        description: Which kind of thing this is - cloud, language, orchestration, and so on.
       - name: postings
+        description: Distinct postings whose description names this tool.
         tests: [not_null]
+      - name: postings_with_text
+        description: >
+          The denominator, repeated on every row. Present so no percentage in
+          this project can be read without the sample size beside it.
+      - name: pct_of_postings
+        description: postings as a share of postings_with_text.
 
   - name: mart_salary_by_skill
-    description: Advertised salary by tool, with the sample size beside it.
+    description: >
+      Advertised salary by tool, with the sample size beside every figure.
+      Only a minority of postings state a salary, so tools with fewer than
+      three observations are omitted entirely - a median over two postings is
+      not a market rate, and publishing it as one is the failure this whole
+      project exists to avoid.
     columns:
       - name: skill_key
+        description: Stable tool identifier.
         tests: [not_null, unique]
+      - name: display_name
+        description: Tool name.
+      - name: category
+        description: Tool category.
       - name: postings_with_salary
+        description: >
+          How many postings backed this row. Read every figure here against
+          this number; at these sample sizes, differences between tools are
+          not meaningful.
         tests: [not_null]
+      - name: median_salary_from
+        description: Median lower bound of the advertised range.
+      - name: median_salary_to
+        description: Median upper bound of the advertised range.
+      - name: min_salary_from
+        description: Lowest advertised lower bound.
+      - name: max_salary_to
+        description: Highest advertised upper bound.
 
   - name: mart_city_stats
-    description: Posting counts and advertised salary by city.
+    description: >
+      Where the roles are and what they pay there. Cities with a single
+      posting are omitted; one posting is not a local market.
+    columns:
+      - name: city
+        description: City as the source recorded it, not normalised.
+      - name: region
+        description: Federal state, where known.
+      - name: postings
+        description: Postings in this city.
+      - name: home_office_postings
+        description: How many of them allow home office.
+      - name: postings_with_salary
+        description: How many state a salary - the denominator for the median beside it.
+      - name: median_salary_from
+        description: >
+          Median advertised lower bound, over plausible annual figures only.
+          Monthly and hourly figures are excluded by range rather than trusted.
 
   - name: mart_language_requirement
     description: >
-      Share of postings that explicitly require German. Per-source rows appear
-      only above a minimum sample size; the ALL row always reports.
+      How much of the German market is gated on German. Measured only over
+      postings with a real description, and only where an explicit competency
+      phrase appears - so the figure is a floor, not a ceiling. Per-source
+      rows are suppressed below a minimum sample size; the ALL row always
+      reports.
     columns:
       - name: population
+        description: >
+          A source name, or ALL. Sources appear only above the minimum sample
+          size, because a percentage over a dozen postings printed beside one
+          over six hundred reads as a comparison when it is not one.
         tests: [not_null, unique]
       - name: postings
+        description: Postings with a usable description in this population.
         tests: [not_null]
+      - name: requires_german
+        description: Postings stating an explicit German-competency requirement.
+      - name: mentions_english
+        description: Postings mentioning English at all.
+      - name: english_without_german
+        description: >
+          Postings mentioning English and stating no German requirement. The
+          closest thing this data has to "reachable without German".
+      - name: pct_requires_german
+        description: requires_german as a share of postings.
+      - name: pct_english_without_german
+        description: english_without_german as a share of postings.
