@@ -79,18 +79,6 @@ jobs:
           dbt seed --profiles-dir .
           dbt build --profiles-dir .
 
-      - name: Generate docs site
-        working-directory: dbt
-        run: |
-          dbt docs generate --profiles-dir .
-          mkdir -p ../docs
-          # index.html loads the other two at runtime; these three are the
-          # whole site. Copied into docs/ because GitHub Pages serves from
-          # there, and regenerated every run so the lineage graph cannot
-          # describe models that no longer exist.
-          cp target/index.html target/manifest.json target/catalog.json ../docs/
-          touch ../docs/.nojekyll
-
       - name: Export snapshot, charts and README figures
         run: |
           python analysis/export_snapshot.py
@@ -101,7 +89,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/snapshots analysis/charts README.md docs
+          git add data/snapshots analysis/charts README.md
           if git diff --staged --quiet; then
             echo "nothing changed"
             exit 0

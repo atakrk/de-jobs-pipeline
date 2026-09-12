@@ -1,0 +1,96 @@
+name: docs
+
+# The lineage graph describes the project's structure, and structure only
+# changes when the dbt project changes -- not when today's postings differ
+# from yesterday's. Regenerating it daily would commit a 700KB manifest every
+# morning for no reason: hundreds of megabytes a year to republish a graph
+# that did not move.
+#
+# So this runs on changes to the dbt project instead. It still needs a
+# database, because `dbt docs generate` reads column types from the warehouse.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dbt/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: docs
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: jobs
+          POSTGRES_USER: jobs
+          POSTGRES_PASSWORD: jobs
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U jobs -d jobs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5433
+      PGDATABASE: jobs
+      PGUSER: jobs
+      PGPASSWORD: jobs
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The catalog reads column types from real relations, so the models have
+      # to exist. Building them empty is enough and takes seconds: the schema
+      # is what the docs describe, not the rows.
+      - name: Create empty relations
+        working-directory: dbt
+        run: |
+          python ../load/create_schema_only.py
+          dbt seed --profiles-dir .
+          dbt run --profiles-dir . --empty
+
+      - name: Generate docs
+        working-directory: dbt
+        run: |
+          dbt docs generate --profiles-dir .
+          mkdir -p ../docs
+          cp target/index.html target/manifest.json target/catalog.json ../docs/
+          touch ../docs/.nojekyll
+
+      - name: Commit docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --staged --quiet; then
+            echo "docs unchanged"
+            exit 0
+          fi
+          git commit -m "Regenerate model documentation"
+          git pull --rebase origin main
+          git push origin HEAD:main
