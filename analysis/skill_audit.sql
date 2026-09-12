@@ -31,9 +31,14 @@ limit 15;
 with sampled as (
     select
         s.skill_key,
+        -- substring(... from pattern) returns only the FIRST parenthesised
+        -- subexpression when the pattern has one. The alternation needs
+        -- grouping, so make it non-capturing and wrap the whole span in the
+        -- capture group instead -- otherwise this returns the bare keyword
+        -- and the surrounding text we actually wanted is discarded.
         substring(
             lower(p.description)
-            from ('.{0,45}\m(' || s.pattern || ')\M.{0,45}')
+            from ('(.{0,45}\m(?:' || s.pattern || ')\M.{0,45})')
         ) as context,
         row_number() over (partition by s.skill_key order by p.posting_id) as rn
     from analytics_intermediate.int_postings p
