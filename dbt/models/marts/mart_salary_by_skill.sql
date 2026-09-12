@@ -24,10 +24,10 @@ select
     k.display_name,
     k.category,
     count(*)                                                          as postings_with_salary,
-    percentile_cont(0.5) within group (order by s.salary_from)::int    as median_salary_from,
-    percentile_cont(0.5) within group (order by s.salary_to)::int      as median_salary_to,
-    min(s.salary_from)::int                                           as min_salary_from,
-    max(s.salary_to)::int                                             as max_salary_to
+    cast(percentile_cont(0.5) within group (order by s.salary_from) as int) as median_salary_from,
+    cast(percentile_cont(0.5) within group (order by s.salary_to) as int)   as median_salary_to,
+    cast(min(s.salary_from) as int)                                         as min_salary_from,
+    cast(max(s.salary_to) as int)                                           as max_salary_to
 from salaried s
 inner join posting_skills k using (posting_id)
 group by 1, 2, 3

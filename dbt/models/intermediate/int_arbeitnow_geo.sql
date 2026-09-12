@@ -31,7 +31,7 @@ flagged as (
 
     select
         *,
-        loc_norm ~ '\m(france|french|united kingdom|great britain|england|scotland|wales|ireland|netherlands|holland|belgium|spain|portugal|italy|poland|czech|austria|switzerland|sweden|norway|denmark|finland|greece|romania|hungary|turkey|usa|united states|canada|india|london|paris|madrid|lisbon|amsterdam|brussels|dublin|vienna|zurich|milan|warsaw|prague)\M'
+        {{ imatch_word('loc_norm', 'france|french|united kingdom|great britain|england|scotland|wales|ireland|netherlands|holland|belgium|spain|portugal|italy|poland|czech|austria|switzerland|sweden|norway|denmark|finland|greece|romania|hungary|turkey|usa|united states|canada|india|london|paris|madrid|lisbon|amsterdam|brussels|dublin|vienna|zurich|milan|warsaw|prague') }}
             as has_foreign_marker
     from locations
 
@@ -44,7 +44,7 @@ matched as (
         exists (
             select 1
             from german_places c
-            where f.loc_norm ~ ('\m' || c.city_norm || '\M')
+            where {{ match_word_expr('f.loc_norm', 'c.city_norm') }}
         ) as matches_german_place
     from flagged f
 

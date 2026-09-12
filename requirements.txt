@@ -7,3 +7,6 @@ psycopg[binary]>=3.2.4,<4
 pandas>=2.2,<3
 matplotlib>=3.9,<4
 dbt-postgres>=1.8,<2
+
+# Only needed for --target databricks; the daily run uses Postgres.
+dbt-databricks>=1.8,<2

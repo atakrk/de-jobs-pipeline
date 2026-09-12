@@ -7,6 +7,9 @@ API returned it, and every interpretation of it happens later in dbt.
 Reruns are safe. The grain is (source_id, run_date), so loading the same day
 twice updates in place rather than duplicating.
 
+Reading the run directory lives in load/rows.py, shared with the Databricks
+loader. This file is only the Postgres writer.
+
 Usage:
     python load/load_raw.py
     python load/load_raw.py --run-date 2026-09-10
@@ -15,7 +18,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 from pathlib import Path
@@ -24,10 +26,11 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from common import RAW_DIR, log  # noqa: E402
+from rows import iter_runs, read_run  # noqa: E402
 
 SCHEMA_FILE = Path(__file__).resolve().parent / "schema.sql"
-ID_FIELDS = ["referenznummer", "refnr", "hashId"]
 
 
 def connect() -> psycopg.Connection:
@@ -38,13 +41,6 @@ def connect() -> psycopg.Connection:
         user=os.getenv("PGUSER", "jobs"),
         password=os.getenv("PGPASSWORD", "jobs"),
     )
-
-
-def posting_id(posting: dict) -> str | None:
-    for field in ID_FIELDS:
-        if posting.get(field):
-            return str(posting[field])
-    return None
 
 
 def upsert(cur, table: str, rows: list[tuple], columns: list[str]) -> int:
@@ -62,62 +58,25 @@ def upsert(cur, table: str, rows: list[tuple], columns: list[str]) -> int:
     return len(rows)
 
 
-def load_run(cur, source: str, run_dir: Path) -> dict[str, int]:
-    run_date = run_dir.name
-    counts = {"postings": 0, "details": 0}
-
-    manifest_file = run_dir / "_manifest.json"
-    if manifest_file.exists():
+def write_run(cur, run) -> None:
+    if run.manifest is not None:
         cur.execute(
             "INSERT INTO raw.ingest_runs (source, run_date, manifest) "
             "VALUES (%s, %s, %s) "
             "ON CONFLICT (source, run_date) DO UPDATE "
             "SET manifest = EXCLUDED.manifest, loaded_at = now()",
-            (source, run_date, Jsonb(json.loads(manifest_file.read_text("utf-8")))),
+            (run.source, run.run_date, Jsonb(run.manifest)),
         )
 
-    posting_rows: list[tuple] = []
-    for page_file in sorted(run_dir.glob("page_*.json")):
-        blob = json.loads(page_file.read_text("utf-8"))
-
-        if source == "arbeitsagentur":
-            payload = blob["payload"]
-            key = blob.get("results_key", "ergebnisliste")
-            for posting in payload.get(key) or []:
-                found = posting_id(posting)
-                if found:
-                    posting_rows.append(
-                        (found, run_date, blob.get("search_term"), Jsonb(posting))
-                    )
-        else:  # arbeitnow
-            for posting in blob.get("data") or []:
-                slug = posting.get("slug")
-                if slug:
-                    posting_rows.append((slug, run_date, Jsonb(posting)))
-
-    if source == "arbeitsagentur":
-        counts["postings"] = upsert(
-            cur, "raw.arbeitsagentur_postings", posting_rows,
-            ["source_id", "run_date", "search_term", "payload"],
-        )
-        detail_rows = [
-            (blob["id"], run_date, Jsonb(blob["payload"]))
-            for blob in (
-                json.loads(f.read_text("utf-8"))
-                for f in sorted((run_dir / "details").glob("*.json"))
-            )
-        ]
-        counts["details"] = upsert(
-            cur, "raw.arbeitsagentur_details", detail_rows,
-            ["source_id", "run_date", "payload"],
-        )
-    else:
-        counts["postings"] = upsert(
-            cur, "raw.arbeitnow_postings", posting_rows,
-            ["source_id", "run_date", "payload"],
-        )
-
-    return counts
+    upsert(cur, "raw.arbeitsagentur_postings",
+           [(i, d, t, Jsonb(p)) for i, d, t, p in run.ag_postings],
+           ["source_id", "run_date", "search_term", "payload"])
+    upsert(cur, "raw.arbeitsagentur_details",
+           [(i, d, Jsonb(p)) for i, d, p in run.ag_details],
+           ["source_id", "run_date", "payload"])
+    upsert(cur, "raw.arbeitnow_postings",
+           [(i, d, Jsonb(p)) for i, d, p in run.an_postings],
+           ["source_id", "run_date", "payload"])
 
 
 def main() -> None:
@@ -129,25 +88,22 @@ def main() -> None:
         log.error("no raw data at %s - run an ingest first", RAW_DIR)
         raise SystemExit(1)
 
+    postings = details = 0
     with connect() as conn, conn.cursor() as cur:
         cur.execute(SCHEMA_FILE.read_text("utf-8"))
         log.info("schema ready")
 
-        total = {"postings": 0, "details": 0}
-        for source_dir in sorted(p for p in RAW_DIR.iterdir() if p.is_dir()):
-            for run_dir in sorted(p for p in source_dir.iterdir() if p.is_dir()):
-                if args.run_date and run_dir.name != args.run_date:
-                    continue
-                counts = load_run(cur, source_dir.name, run_dir)
-                log.info("%-16s %s -> %d postings, %d details",
-                         source_dir.name, run_dir.name,
-                         counts["postings"], counts["details"])
-                total["postings"] += counts["postings"]
-                total["details"] += counts["details"]
+        for source, run_dir in iter_runs(RAW_DIR, args.run_date):
+            run = read_run(source, run_dir)
+            write_run(cur, run)
+            log.info("%-16s %s -> %d postings, %d details",
+                     source, run.run_date, run.posting_count, run.detail_count)
+            postings += run.posting_count
+            details += run.detail_count
 
         conn.commit()
 
-    log.info("loaded %d postings and %d details", total["postings"], total["details"])
+    log.info("loaded %d postings and %d details", postings, details)
 
 
 if __name__ == "__main__":

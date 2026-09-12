@@ -12,11 +12,11 @@ flattened as (
     select
         source_id                                            as posting_id,
         run_date,
-        payload ->> 'stellenangebotsBeschreibung'            as description,
-        (payload ->> 'homeofficemoeglich')::boolean          as allows_home_office,
-        (payload ->> 'istArbeitnehmerUeberlassung')::boolean as is_temp_agency,
-        (payload ->> 'istPrivateArbeitsvermittlung')::boolean as is_private_placement,
-        payload ->> 'vertragsdauer'                          as contract_duration
+        {{ json_text('payload', 'stellenangebotsBeschreibung') }}   as description,
+        cast({{ json_text('payload', 'homeofficemoeglich') }} as boolean)          as allows_home_office,
+        cast({{ json_text('payload', 'istArbeitnehmerUeberlassung') }} as boolean) as is_temp_agency,
+        cast({{ json_text('payload', 'istPrivateArbeitsvermittlung') }} as boolean) as is_private_placement,
+        {{ json_text('payload', 'vertragsdauer') }}          as contract_duration
 
     from source
 

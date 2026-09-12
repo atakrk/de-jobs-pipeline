@@ -36,4 +36,4 @@ combined as (
 select city_norm
 from combined
 where length(city_norm) >= 4
-  and city_norm ~ '^[a-z0-9 .-]+$'
+  and {{ match('city_norm', '^[a-z0-9 .-]+$') }}

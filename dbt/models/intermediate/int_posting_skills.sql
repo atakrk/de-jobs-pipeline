@@ -30,7 +30,7 @@ matched as (
         s.category
     from postings p
     inner join skills s
-        on p.description ~* ('\m(' || s.pattern || ')\M')
+        on {{ match_word_expr('p.description', 's.pattern', ignore_case=true) }}
 
 )
 

@@ -71,15 +71,15 @@ arbeitnow as (
         p.title,
         p.employer,
         p.city,
-        null::text           as region,
+        cast(null as {{ dbt.type_string() }})  as region,
         g.resolved_country   as country,   -- derived, see int_arbeitnow_geo
-        null::numeric        as salary_from,
-        null::numeric        as salary_to,
-        null::boolean        as is_full_time,
+        cast(null as {{ type_money() }}) as salary_from,
+        cast(null as {{ type_money() }}) as salary_to,
+        cast(null as boolean)                  as is_full_time,
         p.published_at,
         p.description,
         p.allows_home_office,
-        null::boolean        as is_temp_agency
+        cast(null as boolean)                  as is_temp_agency
 
     from an_postings p
     left join an_geo g using (posting_id)
@@ -114,7 +114,7 @@ in_scope as (
 
     select *
     from unioned
-    where title ~* '(data|analytics|bi\M|business intelligence|etl)'
+    where {{ imatch('title', '(data|analytics|bi' ~ word_end() ~ '|business intelligence|etl)') }}
       and country = 'DEUTSCHLAND'
 
 ),
@@ -167,9 +167,9 @@ select
     -- A German posting is not the same as a posting that requires German:
     -- almost every federal listing is written in German regardless. Only an
     -- explicit competency phrase counts.
-    description ~* '(deutschkenntnis|fließend(e|es)? deutsch|verhandlungssicher|sehr gute deutsch|gute deutschkenntnisse)'
+    {{ imatch('description', '(deutschkenntnis|fließend(e|es)? deutsch|verhandlungssicher|sehr gute deutsch|gute deutschkenntnisse)') }}
         as requires_german,
-    description ~* '(english|englischkenntnis|englisch)' as mentions_english,
+    {{ imatch('description', '(english|englischkenntnis|englisch)') }} as mentions_english,
     length(coalesce(description, ''))                    as description_length
 
 from deduplicated

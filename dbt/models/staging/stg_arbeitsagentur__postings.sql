@@ -16,26 +16,26 @@ flattened as (
         source_id                                          as posting_id,
         run_date,
         search_term,
-        payload ->> 'stellenangebotsTitel'                 as title,
-        payload ->> 'hauptberuf'                           as occupation,
-        payload ->> 'firma'                                as employer,
-        payload ->> 'stellenangebotsart'                   as posting_type,
-        payload ->> 'vertragsdauer'                        as contract_duration,
-        (payload ->> 'arbeitszeitVollzeit')::boolean       as is_full_time,
-        (payload ->> 'quereinstiegGeeignet')::boolean      as suits_career_changers,
+        {{ json_text('payload', 'stellenangebotsTitel') }}   as title,
+        {{ json_text('payload', 'hauptberuf') }}             as occupation,
+        {{ json_text('payload', 'firma') }}                  as employer,
+        {{ json_text('payload', 'stellenangebotsart') }}     as posting_type,
+        {{ json_text('payload', 'vertragsdauer') }}          as contract_duration,
+        cast({{ json_text('payload', 'arbeitszeitVollzeit') }} as boolean)   as is_full_time,
+        cast({{ json_text('payload', 'quereinstiegGeeignet') }} as boolean)  as suits_career_changers,
 
-        nullif(payload ->> 'gehaltsspanneVon', '')::numeric as salary_from,
-        nullif(payload ->> 'gehaltsspanneBis', '')::numeric as salary_to,
-        payload ->> 'verguetungsangabe'                    as salary_basis,
+        cast(nullif({{ json_text('payload', 'gehaltsspanneVon') }}, '') as {{ type_money() }}) as salary_from,
+        cast(nullif({{ json_text('payload', 'gehaltsspanneBis') }}, '') as {{ type_money() }}) as salary_to,
+        {{ json_text('payload', 'verguetungsangabe') }}      as salary_basis,
 
-        payload -> 'stellenlokationen' -> 0 -> 'adresse' ->> 'ort'    as city,
-        payload -> 'stellenlokationen' -> 0 -> 'adresse' ->> 'plz'    as postcode,
-        payload -> 'stellenlokationen' -> 0 -> 'adresse' ->> 'region' as region,
-        payload -> 'stellenlokationen' -> 0 -> 'adresse' ->> 'land'   as country,
-        coalesce(jsonb_array_length(payload -> 'stellenlokationen'), 0) as location_count,
+        {{ json_text('payload', ['stellenlokationen', 0, 'adresse', 'ort']) }}    as city,
+        {{ json_text('payload', ['stellenlokationen', 0, 'adresse', 'plz']) }}    as postcode,
+        {{ json_text('payload', ['stellenlokationen', 0, 'adresse', 'region']) }} as region,
+        {{ json_text('payload', ['stellenlokationen', 0, 'adresse', 'land']) }}   as country,
+        coalesce({{ json_array_len('payload', 'stellenlokationen') }}, 0)         as location_count,
 
-        nullif(payload ->> 'datumErsteVeroeffentlichung', '')::date as published_at,
-        nullif(payload ->> 'aenderungsdatum', '')::timestamp        as changed_at
+        cast(nullif({{ json_text('payload', 'datumErsteVeroeffentlichung') }}, '') as date)      as published_at,
+        cast(nullif({{ json_text('payload', 'aenderungsdatum') }}, '') as timestamp)             as changed_at
 
     from source
 

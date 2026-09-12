@@ -8,8 +8,10 @@ Actions. The README holds the findings; this file holds the conventions.
 
 ```
 ingest/     API clients, one per source. Write untouched responses only.
-load/       raw JSON -> Postgres as jsonb. No reshaping here.
+load/       raw JSON -> warehouse. No reshaping here.
+              rows.py reads a run; one writer per platform.
 dbt/        staging -> intermediate -> marts
+              macros/dialect.sql holds every per-platform difference
 analysis/   charts, snapshot export, and audits kept next to what they audit
 ```
 
@@ -25,6 +27,15 @@ cd dbt && dbt build --profiles-dir .
 cd .. && python analysis/make_charts.py
 ```
 
+Same data on Databricks — credentials come from `.env`, which is gitignored
+and never pasted anywhere:
+
+```bash
+set -a; source .env; set +a
+python load/load_raw_databricks.py
+cd dbt && dbt build --profiles-dir . --target databricks
+```
+
 dbt needs `--profiles-dir .` — `profiles.yml` lives in the repo, not `~/.dbt`.
 
 ## Conventions that are decisions, not habits
@@ -38,8 +49,9 @@ reproducible from the JSON on disk.
 accumulate. Do not collapse this to one row per posting.
 
 **Skill patterns live in `dbt/seeds/skills.csv`, never in SQL.** Adding a tool
-is a data change. Patterns match with word boundaries (`\m...\M`) — without
-them `sql` matches inside `postgresql`.
+is a data change. Patterns match with word boundaries — without them `sql`
+matches inside `postgresql`. Write the boundary through `imatch_word` or
+`match_word_expr`, never inline: the spelling differs per platform.
 
 **Every rate carries its denominator.** `mart_skill_frequency` reports
 `postings_with_text` beside every percentage. `mart_salary_by_skill` suppresses
@@ -59,6 +71,16 @@ rule existed.
 
 **Do not scrape.** Both sources are public APIs. Keep it that way: no
 LinkedIn, no Indeed, no headless browsers.
+
+**The models are single-source across platforms.** They run on Postgres and on
+Databricks from the same files. Anything the two spell differently — JSON
+access, regex, word boundaries, numeric types — goes in `dbt/macros/dialect.sql`
+behind a `target.type` branch that raises on an unknown adapter. Do not fork a
+model, and do not inline platform syntax "just this once".
+
+**A port is verified by diffing output, not by building.** Every plausible
+rewrite compiles, and a wrong one returns fewer rows rather than an error.
+Build both versions against the same fixture and diff the tables.
 
 **Do not disable TLS verification.** Community docs for the federal API suggest
 it. The handshake works fine.

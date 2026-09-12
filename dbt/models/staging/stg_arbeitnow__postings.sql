@@ -17,13 +17,13 @@ flattened as (
     select
         source_id                            as posting_id,
         run_date,
-        payload ->> 'title'                  as title,
-        payload ->> 'company_name'           as employer,
-        payload ->> 'description'            as description,
-        payload ->> 'location'               as city,
-        (payload ->> 'remote')::boolean      as allows_home_office,
-        payload ->> 'url'                    as url,
-        to_timestamp((payload ->> 'created_at')::bigint)::date as published_at
+        {{ json_text('payload', 'title') }}          as title,
+        {{ json_text('payload', 'company_name') }}   as employer,
+        {{ json_text('payload', 'description') }}    as description,
+        {{ json_text('payload', 'location') }}       as city,
+        cast({{ json_text('payload', 'remote') }} as boolean)  as allows_home_office,
+        {{ json_text('payload', 'url') }}            as url,
+        {{ epoch_to_date(json_text('payload', 'created_at')) }} as published_at
 
     from source
 
