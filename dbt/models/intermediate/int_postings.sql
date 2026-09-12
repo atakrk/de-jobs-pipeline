@@ -14,7 +14,31 @@
 -- collapsed. That is the trade this project accepts, and it is why the
 -- source column is kept -- so the effect stays measurable.
 
-with arbeitsagentur as (
+with ag_postings as (
+
+    select * from {{ ref('stg_arbeitsagentur__postings') }}
+
+),
+
+ag_details as (
+
+    select * from {{ ref('stg_arbeitsagentur__details') }}
+
+),
+
+an_postings as (
+
+    select * from {{ ref('stg_arbeitnow__postings') }}
+
+),
+
+an_geo as (
+
+    select * from {{ ref('int_arbeitnow_geo') }}
+
+),
+
+arbeitsagentur as (
 
     select
         p.posting_id,
@@ -33,9 +57,8 @@ with arbeitsagentur as (
         d.allows_home_office,
         d.is_temp_agency
 
-    from {{ ref('stg_arbeitsagentur__postings') }} p
-    left join {{ ref('stg_arbeitsagentur__details') }} d
-        using (posting_id, run_date)
+    from ag_postings p
+    left join ag_details d using (posting_id, run_date)
 
 ),
 
@@ -58,8 +81,8 @@ arbeitnow as (
         p.allows_home_office,
         null::boolean        as is_temp_agency
 
-    from {{ ref('stg_arbeitnow__postings') }} p
-    left join {{ ref('int_arbeitnow_geo') }} g using (posting_id)
+    from an_postings p
+    left join an_geo g using (posting_id)
 
 ),
 

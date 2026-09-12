@@ -4,7 +4,13 @@
 -- is reported alongside every figure. A median over four postings is not a
 -- market rate, and the column is there so nobody reads it as one.
 
-with salaried as (
+with posting_skills as (
+
+    select * from {{ ref('int_posting_skills') }}
+
+),
+
+salaried as (
 
     select posting_id, salary_from, salary_to
     from {{ ref('int_postings') }}
@@ -23,7 +29,7 @@ select
     min(s.salary_from)::int                                           as min_salary_from,
     max(s.salary_to)::int                                             as max_salary_to
 from salaried s
-inner join {{ ref('int_posting_skills') }} k using (posting_id)
+inner join posting_skills k using (posting_id)
 group by 1, 2, 3
 having count(*) >= 3
 order by median_salary_from desc nulls last

@@ -11,7 +11,13 @@
 -- Unknown stays unknown rather than being assumed German. Assuming is what
 -- put London and Paris inside figures reported as the German market.
 
-with locations as (
+with german_places as (
+
+    select city_norm from {{ ref('int_german_cities') }}
+
+),
+
+locations as (
 
     select
         posting_id,
@@ -37,7 +43,7 @@ matched as (
         f.*,
         exists (
             select 1
-            from {{ ref('int_german_cities') }} c
+            from german_places c
             where f.loc_norm ~ ('\m' || c.city_norm || '\M')
         ) as matches_german_place
     from flagged f

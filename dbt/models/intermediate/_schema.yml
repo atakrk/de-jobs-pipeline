@@ -130,8 +130,9 @@ models:
         tests:
           - not_null
           - relationships:
-              to: ref('skills')
-              field: skill_key
+              arguments:
+                to: ref('skills')
+                field: skill_key
       - name: display_name
         description: Human-readable tool name, as it appears in charts.
       - name: category
