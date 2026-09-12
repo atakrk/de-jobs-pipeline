@@ -29,3 +29,6 @@ dbt/.user.yml
 
 # private notes, kept locally on purpose
 ENGINEERING-LOG.md
+
+# desktop app drops files here; not project content
+Claude outputs/
