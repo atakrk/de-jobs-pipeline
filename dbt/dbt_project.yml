@@ -25,8 +25,18 @@ seeds:
   de_jobs:
     +schema: seeds
     skills:
+      # Pinned because seed types are inferred from the file: Postgres would
+      # size a varchar to the longest pattern present today, so adding a
+      # longer regex would stop being a one-line data change.
+      #
+      # The platform difference is spelled here rather than in
+      # macros/dialect.sql -- the one exception to that rule -- because
+      # dbt_project.yml is rendered without macros in scope. The lookup is a
+      # mapping rather than a conditional so an unknown adapter fails to
+      # render instead of silently taking the Postgres spelling, which is the
+      # same guarantee the dialect macros give by raising.
       +column_types:
-        skill_key: text
-        display_name: text
-        category: text
-        pattern: text
+        skill_key: &seed_text "{{ {'postgres': 'text', 'databricks': 'string'}[target.type] }}"
+        display_name: *seed_text
+        category: *seed_text
+        pattern: *seed_text
