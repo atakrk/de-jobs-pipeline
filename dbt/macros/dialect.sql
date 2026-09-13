@@ -201,3 +201,24 @@
         {{ exceptions.raise_compiler_error("type_money has no implementation for target type '" ~ target.type ~ "'") }}
     {%- endif -%}
 {%- endmacro %}
+
+
+{#
+    A timestamp with no timezone attached.
+
+    Postgres `timestamp` is a wall-clock reading. Spark's `TIMESTAMP` is an
+    instant interpreted through the session timezone, so the same cast returns
+    a value that shifts with a session setting the source never mentioned --
+    the federal API states a local time and no offset. `TIMESTAMP_NTZ` is the
+    type that means what Postgres means, and pinning it keeps the two builds
+    comparable rather than coincidentally equal in UTC.
+#}
+{% macro type_timestamp() -%}
+    {%- if target.type == 'postgres' -%}
+        timestamp
+    {%- elif target.type == 'databricks' -%}
+        timestamp_ntz
+    {%- else -%}
+        {{ exceptions.raise_compiler_error("type_timestamp has no implementation for target type '" ~ target.type ~ "'") }}
+    {%- endif -%}
+{%- endmacro %}

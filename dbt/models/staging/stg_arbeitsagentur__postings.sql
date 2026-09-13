@@ -35,7 +35,7 @@ flattened as (
         coalesce({{ json_array_len('payload', 'stellenlokationen') }}, 0)         as location_count,
 
         cast(nullif({{ json_text('payload', 'datumErsteVeroeffentlichung') }}, '') as date)      as published_at,
-        cast(nullif({{ json_text('payload', 'aenderungsdatum') }}, '') as timestamp)             as changed_at
+        cast(nullif({{ json_text('payload', 'aenderungsdatum') }}, '') as {{ type_timestamp() }})             as changed_at
 
     from source
 
