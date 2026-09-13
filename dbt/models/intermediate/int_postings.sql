@@ -3,6 +3,8 @@
 -- Three things happen here, in order:
 --   1. Attach the description. The federal API splits salary (listing) from
 --      text (detail), so a posting is only complete once both are joined.
+--      Details are sampled rather than complete, so the newest one ever
+--      fetched is used -- not the one from the same run as the listing.
 --   2. Keep the latest run per posting. Postings reappear across daily runs;
 --      the newest snapshot wins.
 --   3. Deduplicate across sources on employer + title. The same vacancy is
@@ -22,7 +24,27 @@ with ag_postings as (
 
 ag_details as (
 
-    select * from {{ ref('stg_arbeitsagentur__details') }}
+    -- The most recent description a run ever fetched for this posting, not the
+    -- one from its latest listing run. Details are sampled: --detail-limit
+    -- truncates, the seeded shuffle picks a different subset each day, and an
+    -- interrupted run fetches almost none. Joining on run_date therefore threw
+    -- away text that was sitting in the raw layer -- 171 of 634 postings on the
+    -- day an interrupted run happened to be the latest one, every one of them
+    -- counted as having no requirements to read.
+    --
+    -- The raw layer accumulates days precisely so this is possible. A
+    -- description fetched on Monday is still that posting's description on
+    -- Tuesday, and if the text has since changed, the newest one wins.
+    select * from (
+        select
+            *,
+            row_number() over (
+                partition by posting_id
+                order by run_date desc
+            ) as detail_rank
+        from {{ ref('stg_arbeitsagentur__details') }}
+    ) ranked
+    where detail_rank = 1
 
 ),
 
@@ -58,7 +80,7 @@ arbeitsagentur as (
         d.is_temp_agency
 
     from ag_postings p
-    left join ag_details d using (posting_id, run_date)
+    left join ag_details d using (posting_id)
 
 ),
 
