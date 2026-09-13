@@ -1,8 +1,9 @@
 # Working in this repository
 
 A pipeline that measures what German data engineering job postings ask for.
-Two public job APIs into Postgres, modelled with dbt, running daily on GitHub
-Actions. The README holds the findings; this file holds the conventions.
+Two public job APIs, modelled with dbt, running daily on GitHub Actions into
+Databricks; Postgres is the local copy and the same models build on both. The
+README holds the findings; this file holds the conventions.
 
 ## Layout
 
@@ -27,8 +28,8 @@ cd dbt && dbt build --profiles-dir .
 cd .. && python analysis/make_charts.py
 ```
 
-Same data on Databricks — credentials come from `.env`, which is gitignored
-and never pasted anywhere:
+Same data on Databricks, which is what the daily run writes to — credentials
+come from `.env`, which is gitignored and never pasted anywhere:
 
 ```bash
 set -a; source .env; set +a
@@ -102,10 +103,17 @@ model, and do not inline platform syntax "just this once".
 
 **A port is verified by diffing output, not by building.** Every plausible
 rewrite compiles, and a wrong one returns fewer rows rather than an error.
-Build both versions against the same fixture and diff the tables —
-`scripts/fixture.py`. Then do it again on the real data with
-`scripts/compare_targets.py`, because the two failures that mattered were a
-grain nobody had written down and two real postings that tie, and a fixture
+
+`scripts/fixture.py --target` loads the same synthetic rows into either engine
+and dumps every model, and the `parity` workflow diffs the two on any change
+to `dbt/models/**` or `dbt/macros/**`. It builds into `fixture_raw` and
+`fixture_*` so it cannot reach the tables holding real runs.
+
+`scripts/compare_targets.py` does the same on the real marts and stays a local
+check — production keeps thirty days on Databricks while a CI Postgres holds
+one run, so in CI the two would be compared on different inputs. Run it
+locally whenever a dialect macro changes: the two failures that mattered were
+a grain nobody had written down and two real postings that tie, and a fixture
 can contain neither.
 
 **Do not disable TLS verification.** Community docs for the federal API suggest

@@ -1,0 +1,97 @@
+name: parity
+
+# The models are single-source across Postgres and Databricks, which is only
+# worth something if the two engines actually agree. A green `dbt build` does
+# not show that: every dialect rewrite compiles, and a wrong one returns
+# different rows rather than an error.
+#
+# scripts/compare_targets.py answers this on real data, but it cannot run here.
+# Production holds thirty days on Databricks and a CI Postgres holds one run,
+# so the two would be compared on different inputs and every difference would
+# be the data. The fixture is the only input both engines can be given
+# identically -- rows chosen to hit the expressions that are easy to get wrong,
+# not to look like a realistic sample.
+#
+# Runs on changes to the models or to the dialect macros, because that is when
+# the two builds can diverge.
+
+on:
+  push:
+    paths:
+      - "dbt/models/**"
+      - "dbt/macros/**"
+      - "scripts/fixture.py"
+      - ".github/workflows/parity.yml"
+  workflow_dispatch:
+
+concurrency:
+  # Keyed by ref: two pushes to the same branch need not both run, but a push
+  # to main must not cancel one already checking another branch.
+  group: parity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: jobs
+          POSTGRES_USER: jobs
+          POSTGRES_PASSWORD: jobs
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U jobs -d jobs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PGHOST: localhost
+      PGPORT: 5433
+      PGDATABASE: jobs
+      PGUSER: jobs
+      PGPASSWORD: jobs
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build the fixture on Postgres
+        run: python scripts/fixture.py --load --dump /tmp/postgres
+
+      - name: Build the fixture on Databricks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+          DATABRICKS_CATALOG: ${{ secrets.DATABRICKS_CATALOG }}
+          # Named here rather than defaulted in code, so that reading this file
+          # is enough to see that the job cannot reach production. The fixture
+          # truncates what it writes to, and `raw` holds real runs.
+          RAW_SCHEMA: fixture_raw
+          DATABRICKS_SCHEMA: fixture
+        run: python scripts/fixture.py --target databricks --load --dump /tmp/databricks
+
+      - name: Diff
+        run: |
+          if diff -r /tmp/postgres /tmp/databricks; then
+            echo "engines agree on all models"
+          else
+            echo
+            echo "The two engines disagree. Fix the macro in dbt/macros/dialect.sql;"
+            echo "do not edit a model to make the diff go away -- that hides the"
+            echo "disagreement instead of removing it."
+            exit 1
+          fi
