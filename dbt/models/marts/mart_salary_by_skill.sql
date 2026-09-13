@@ -32,4 +32,4 @@ from salaried s
 inner join posting_skills k using (posting_id)
 group by 1, 2, 3
 having count(*) >= 3
-order by median_salary_from desc nulls last
+order by median_salary_from desc nulls last, skill_key

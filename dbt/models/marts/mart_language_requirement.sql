@@ -70,4 +70,4 @@ select
     round(100.0 * english_without_german / nullif(postings, 0), 1)
         as pct_english_without_german
 from combined
-order by postings desc
+order by postings desc, population

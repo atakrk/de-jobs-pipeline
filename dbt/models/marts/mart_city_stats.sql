@@ -12,4 +12,4 @@ select
 from {{ ref('int_postings') }}
 group by 1, 2
 having count(*) >= 2
-order by postings desc
+order by postings desc, city, region

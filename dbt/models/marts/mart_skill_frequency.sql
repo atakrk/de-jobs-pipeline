@@ -37,4 +37,4 @@ select
     round(100.0 * s.postings / nullif(t.postings_with_text, 0), 1) as pct_of_postings
 from per_skill s
 cross join total t
-order by s.postings desc
+order by s.postings desc, s.skill_key
