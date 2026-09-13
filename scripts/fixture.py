@@ -21,8 +21,18 @@ reason 'bi' carries a word boundary the other alternatives do not), a posting
 outside Germany, and the same vacancy under two sources so deduplication has
 something to do.
 
-This writes to the raw schema. Point it at the local Postgres, never at a
-warehouse holding a real run.
+It also runs on either engine, which is what makes it usable as a CI gate.
+Once production holds thirty days on Databricks and a CI Postgres holds one,
+the two cannot be compared on real data -- different inputs. These rows are the
+only input both can be given identically.
+
+    python scripts/fixture.py --load --dump /tmp/pg
+    python scripts/fixture.py --target databricks --load --dump /tmp/db
+    diff -r /tmp/pg /tmp/db
+
+This truncates the raw tables it writes to. Point it at the local Postgres or
+at a throwaway schema, never at one holding a real run -- RAW_SCHEMA and
+DATABRICKS_SCHEMA exist so the Databricks side can be sent somewhere harmless.
 """
 
 from __future__ import annotations
@@ -31,24 +41,30 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
-import psycopg
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "load"))
 
 RUN = "2026-09-12"
 
+RAW_TABLES = ["arbeitsagentur_postings", "arbeitsagentur_details",
+              "arbeitnow_postings"]
+
+# (layer, table). The schema is <prefix>_<layer>, and the prefix moves with
+# DATABRICKS_SCHEMA so a fixture build can be sent away from production.
 MODELS = [
-    ("analytics_staging", "stg_arbeitsagentur__postings"),
-    ("analytics_staging", "stg_arbeitsagentur__details"),
-    ("analytics_staging", "stg_arbeitnow__postings"),
-    ("analytics_intermediate", "int_german_cities"),
-    ("analytics_intermediate", "int_arbeitnow_geo"),
-    ("analytics_intermediate", "int_postings"),
-    ("analytics_intermediate", "int_posting_skills"),
-    ("analytics_marts", "mart_skill_frequency"),
-    ("analytics_marts", "mart_salary_by_skill"),
-    ("analytics_marts", "mart_city_stats"),
-    ("analytics_marts", "mart_language_requirement"),
+    ("staging", "stg_arbeitsagentur__postings"),
+    ("staging", "stg_arbeitsagentur__details"),
+    ("staging", "stg_arbeitnow__postings"),
+    ("intermediate", "int_german_cities"),
+    ("intermediate", "int_arbeitnow_geo"),
+    ("intermediate", "int_postings"),
+    ("intermediate", "int_posting_skills"),
+    ("marts", "mart_skill_frequency"),
+    ("marts", "mart_salary_by_skill"),
+    ("marts", "mart_city_stats"),
+    ("marts", "mart_language_requirement"),
 ]
 
 DESC_DE = (
@@ -136,54 +152,129 @@ AN_POSTINGS = [
 ]
 
 
-def connect() -> psycopg.Connection:
-    return psycopg.connect(
-        host=os.getenv("PGHOST", "localhost"),
-        port=os.getenv("PGPORT", "5433"),
-        dbname=os.getenv("PGDATABASE", "jobs"),
-        user=os.getenv("PGUSER", "jobs"),
-        password=os.getenv("PGPASSWORD", "jobs"),
-    )
+def raw_schema() -> str:
+    return os.getenv("RAW_SCHEMA", "raw")
 
 
-def load() -> None:
-    schema = Path(__file__).resolve().parents[1] / "load" / "schema.sql"
-    with connect() as conn, conn.cursor() as cur:
-        cur.execute(schema.read_text("utf-8"))
-        cur.execute("truncate raw.arbeitsagentur_postings, "
-                    "raw.arbeitsagentur_details, raw.arbeitnow_postings")
-        cur.executemany(
-            "insert into raw.arbeitsagentur_postings "
-            "(source_id, run_date, search_term, payload) values (%s,%s,%s,%s)",
-            [(i, RUN, t, json.dumps(p)) for i, t, p in AG_POSTINGS])
-        cur.executemany(
-            "insert into raw.arbeitsagentur_details (source_id, run_date, payload) "
-            "values (%s,%s,%s)",
-            [(i, RUN, json.dumps(p)) for i, p in AG_DETAILS])
-        cur.executemany(
-            "insert into raw.arbeitnow_postings (source_id, run_date, payload) "
-            "values (%s,%s,%s)",
-            [(i, RUN, json.dumps(p)) for i, p in AN_POSTINGS])
-        conn.commit()
-    print(f"fixture loaded: {len(AG_POSTINGS)} postings, {len(AG_DETAILS)} details, "
-          f"{len(AN_POSTINGS)} board rows")
+def model_prefix(target: str) -> str:
+    if target == "databricks":
+        return os.getenv("DATABRICKS_SCHEMA", "analytics")
+    return "analytics"
 
 
-def build() -> None:
+def qualify(target: str, schema: str) -> str:
+    """Databricks needs the catalog; Postgres must not be given one."""
+    if target == "databricks":
+        return f"{os.getenv('DATABRICKS_CATALOG', 'workspace')}.{schema}"
+    return schema
+
+
+def connect(target: str):
+    """A connection and its placeholder, which the two drivers spell apart."""
+    if target == "postgres":
+        import psycopg
+
+        conn = psycopg.connect(
+            host=os.getenv("PGHOST", "localhost"),
+            port=os.getenv("PGPORT", "5433"),
+            dbname=os.getenv("PGDATABASE", "jobs"),
+            user=os.getenv("PGUSER", "jobs"),
+            password=os.getenv("PGPASSWORD", "jobs"),
+        )
+        return conn, "%s"
+
+    if target == "databricks":
+        from databricks import sql as dbsql
+
+        conn = dbsql.connect(
+            server_hostname=os.environ["DATABRICKS_HOST"],
+            http_path=os.environ["DATABRICKS_HTTP_PATH"],
+            access_token=os.environ["DATABRICKS_TOKEN"],
+        )
+        return conn, "?"
+
+    raise SystemExit(f"unknown target '{target}' - expected postgres or databricks")
+
+
+def load(target: str) -> None:
+    root = Path(__file__).resolve().parents[1]
+    raw = qualify(target, raw_schema())
+
+    conn, ph = connect(target)
+    with conn, conn.cursor() as cur:
+        if target == "databricks":
+            # Reuse the loader's applier rather than re-splitting the file: it
+            # already knows that a semicolon inside a comment is not the end of
+            # a statement.
+            from load_raw_databricks import ensure_schema
+
+            ensure_schema(cur, os.getenv("DATABRICKS_CATALOG", "workspace"))
+        else:
+            cur.execute((root / "load" / "schema.sql").read_text("utf-8"))
+
+        for table in RAW_TABLES:
+            cur.execute(f"truncate table {raw}.{table}")
+
+        def clause(columns: list[str]) -> str:
+            """Delta has no column defaults: loaded_at is NOT NULL and an
+            INSERT that omits it is rejected, where Postgres fills it in."""
+            names, values = list(columns), [ph] * len(columns)
+            if target == "databricks":
+                names.append("loaded_at")
+                values.append("current_timestamp()")
+            return f"({', '.join(names)}) values ({', '.join(values)})"
+
+        rows = [
+            (f"{raw}.arbeitsagentur_postings",
+             clause(["source_id", "run_date", "search_term", "payload"]),
+             [(i, RUN, term, json.dumps(payload)) for i, term, payload in AG_POSTINGS]),
+            (f"{raw}.arbeitsagentur_details",
+             clause(["source_id", "run_date", "payload"]),
+             [(i, RUN, json.dumps(payload)) for i, payload in AG_DETAILS]),
+            (f"{raw}.arbeitnow_postings",
+             clause(["source_id", "run_date", "payload"]),
+             [(i, RUN, json.dumps(payload)) for i, payload in AN_POSTINGS]),
+        ]
+        for table, insert, values in rows:
+            for value in values:
+                cur.execute(f"insert into {table} {insert}", list(value))
+
+        if target == "postgres":
+            conn.commit()
+
+    print(f"fixture loaded into {raw}: {len(AG_POSTINGS)} postings, "
+          f"{len(AG_DETAILS)} details, {len(AN_POSTINGS)} board rows")
+
+
+def build(target: str) -> None:
     root = Path(__file__).resolve().parents[1] / "dbt"
-    subprocess.run(["dbt", "build", "--profiles-dir", "."], cwd=root, check=True)
+    dbt_target = "dev" if target == "postgres" else target
+    subprocess.run(["dbt", "build", "--profiles-dir", ".", "--target", dbt_target],
+                   cwd=root, check=True)
 
 
-def dump(out: Path) -> None:
+def dump(target: str, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
-    with connect() as conn, conn.cursor() as cur:
-        for schema, table in MODELS:
-            cur.execute(f"select * from {schema}.{table} order by 1")
-            columns = [d.name for d in cur.description]
+    prefix = model_prefix(target)
+    conn, _ = connect(target)
+    with conn, conn.cursor() as cur:
+        for layer, table in MODELS:
+            schema = qualify(target, f"{prefix}_{layer}")
+            cur.execute(f"select * from {schema}.{table}")
+            # By position: psycopg returns Column objects, the Databricks
+            # connector returns tuples.
+            columns = [d[0] for d in cur.description]
             lines = ["|".join(columns)]
-            for row in cur.fetchall():
-                lines.append("|".join(
-                    "NULL" if v is None else str(v).replace("\n", " ") for v in row))
+            rendered = [
+                ["NULL" if v is None else str(v).replace("\n", " ") for v in row]
+                for row in cur.fetchall()
+            ]
+            # Sorted on every column, not on the first. Ordering by one column
+            # leaves ties to the engine, and int_posting_skills has several
+            # rows per posting -- which showed up as a diff with no difference
+            # in it the first time these two dumps were compared.
+            for row in sorted(rendered):
+                lines.append("|".join(row))
             (out / f"{table}.csv").write_text("\n".join(lines) + "\n", "utf-8")
     print(f"dumped {len(MODELS)} models to {out}")
 
@@ -195,16 +286,19 @@ def main() -> None:
     parser.add_argument("--build", action="store_true",
                         help="run dbt build before dumping")
     parser.add_argument("--dump", type=Path, help="write one CSV per model here")
+    parser.add_argument("--target", default="postgres",
+                        choices=["postgres", "databricks"],
+                        help="which engine to load, build and dump (default postgres)")
     args = parser.parse_args()
 
     if not (args.load or args.build or args.dump):
         parser.error("nothing to do: pass --load, --build and/or --dump")
     if args.load:
-        load()
+        load(args.target)
     if args.build or args.dump:
-        build()
+        build(args.target)
     if args.dump:
-        dump(args.dump)
+        dump(args.target, args.dump)
 
 
 if __name__ == "__main__":
