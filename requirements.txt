@@ -8,5 +8,11 @@ pandas>=2.2,<3
 matplotlib>=3.9,<4
 dbt-postgres>=1.8,<2
 
-# Only needed for --target databricks; the daily run uses Postgres.
+# The daily run builds here. Postgres above stays for local work, the docs
+# job and the fixture gate, so both adapters are installed everywhere rather
+# than split across requirement files nobody keeps in step.
 dbt-databricks>=1.8,<2
+# Imported directly by load/load_raw_databricks.py and analysis/warehouse.py.
+# It arrives with dbt-databricks anyway; naming it means a direct import does
+# not rest on somebody else's dependency choice.
+databricks-sql-connector>=4.0,<5

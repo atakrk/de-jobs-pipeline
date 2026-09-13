@@ -4,6 +4,14 @@ name: daily
 # dbt's tests run every morning against a live third-party API. If the source
 # changes shape -- a renamed field, a moved endpoint, an auth change -- the
 # build goes red and says so, instead of the numbers quietly drifting.
+#
+# This used to build into a Postgres service container, which GitHub created
+# empty and destroyed ten minutes later. That made every published figure one
+# morning's sample: the raw layer never accumulated, so "the latest run per
+# posting" and "the newest description ever fetched" had nothing to choose
+# between, and the README could swing from 633 postings to 411 overnight
+# because the sample moved rather than the market. It builds into Databricks
+# now, which keeps thirty days and is pruned back to it by the loader.
 
 on:
   schedule:
@@ -22,32 +30,23 @@ permissions:
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: jobs
-          POSTGRES_USER: jobs
-          POSTGRES_PASSWORD: jobs
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd "pg_isready -U jobs -d jobs"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    # Generous because the serverless warehouse cold-starts: the first
+    # statement of the day waits for compute that is not running yet. The
+    # answer to a slow start is a longer timeout, not dbt wrapped in retries --
+    # a retry around a build turns one honest failure into three.
+    timeout-minutes: 60
 
     env:
-      PGHOST: localhost
-      PGPORT: 5433
-      PGDATABASE: jobs
-      PGUSER: jobs
-      PGPASSWORD: jobs
       # Gentler than the local default: this is someone else's public service
       # and nobody is waiting on the result.
       REQUEST_DELAY_SECONDS: "1.0"
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CATALOG: ${{ secrets.DATABRICKS_CATALOG }}
+      # Read by analysis/warehouse.py, so the three analysis steps do not each
+      # have to be told where the marts were built.
+      WAREHOUSE_TARGET: databricks
 
     steps:
       - uses: actions/checkout@v7
@@ -70,14 +69,14 @@ jobs:
           python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 900
           python ingest/arbeitnow.py --max-pages 5
 
-      - name: Load
-        run: python load/load_raw.py
+      - name: Load and prune
+        run: python load/load_raw_databricks.py
 
       - name: Build and test
         working-directory: dbt
         run: |
-          dbt seed --profiles-dir .
-          dbt build --profiles-dir .
+          dbt seed --profiles-dir . --target databricks
+          dbt build --profiles-dir . --target databricks
 
       - name: Export snapshot, charts and README figures
         run: |
