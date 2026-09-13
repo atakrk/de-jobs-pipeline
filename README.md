@@ -18,7 +18,7 @@ so any number here can be traced back to the run that produced it.
 
 <!-- FINDINGS:START -->
 
-*Generated from the latest pipeline run (2026-09-13); these figures change when it does.*
+*Postings still being advertised across the 4 daily runs from 2026-09-10 to 2026-09-13. A posting leaves these figures once the sources stop listing it, so this is what the market is asking for now rather than one morning's sample.*
 
 **671 postings** after scope filtering, location validation and deduplication; **665** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 665.
 

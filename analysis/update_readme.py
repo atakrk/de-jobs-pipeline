@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
@@ -47,8 +46,11 @@ def build_block(cur, marts: str, intermediate: str) -> str:
         raise SystemExit("mart_language_requirement has no ALL row")
     _, with_text, pct_german, pct_english, n_german, n_english = row
 
-    cur.execute(f"select count(*) from {intermediate}.int_postings")
-    total_postings = cur.fetchone()[0]
+    cur.execute(f"""
+        select count(*), count(distinct run_date), min(run_date), max(run_date)
+        from {intermediate}.int_postings
+    """)
+    total_postings, run_count, first_run, last_run = cur.fetchone()
 
     # Spelled inline rather than bound: `= any(%s)` is Postgres, the two
     # connectors disagree on the placeholder, and CLOUDS is a constant in this
@@ -67,8 +69,15 @@ def build_block(cur, marts: str, intermediate: str) -> str:
     lines = [
         START,
         "",
-        f"*Generated from the latest pipeline run "
-        f"({date.today().isoformat()}); these figures change when it does.*",
+        # Not "the latest run". The warehouse accumulates, and int_postings
+        # keeps every posting still seen inside the freshness window -- so the
+        # published set spans several runs, and saying otherwise would publish
+        # a correct number under a false description.
+        f"*Postings still being advertised across the {run_count} daily "
+        f"{'run' if run_count == 1 else 'runs'} from {first_run} to "
+        f"{last_run}. A posting leaves these figures once the sources stop "
+        f"listing it, so this is what the market is asking for now rather "
+        f"than one morning's sample.*",
         "",
         f"**{total_postings:,} postings** after scope filtering, location "
         f"validation and deduplication; **{with_text:,}** of them carry a "
