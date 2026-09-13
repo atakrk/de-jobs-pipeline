@@ -9,6 +9,12 @@ macro-paths: ["macros"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
 
+# How recently a posting must have been seen to count as currently advertised.
+# Deliberately separate from the warehouse retention window: retention is a
+# storage bound, this is a definition. See int_postings and CLAUDE.md.
+vars:
+  posting_freshness_days: 7
+
 models:
   de_jobs:
     staging:

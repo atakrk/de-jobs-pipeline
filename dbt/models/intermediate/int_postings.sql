@@ -1,13 +1,15 @@
 -- One row per distinct job posting, both sources combined.
 --
--- Three things happen here, in order:
+-- Four things happen here, in order:
 --   1. Attach the description. The federal API splits salary (listing) from
 --      text (detail), so a posting is only complete once both are joined.
 --      Details are sampled rather than complete, so the newest one ever
 --      fetched is used -- not the one from the same run as the listing.
 --   2. Keep the latest run per posting. Postings reappear across daily runs;
 --      the newest snapshot wins.
---   3. Deduplicate across sources on employer + title. The same vacancy is
+--   3. Drop anything not seen lately. A posting last seen three weeks ago is
+--      a filled vacancy, not a vacancy. See current_postings.
+--   4. Deduplicate across sources on employer + title. The same vacancy is
 --      routinely syndicated to several boards, and counting it twice would
 --      inflate exactly the numbers this project exists to report.
 --
@@ -153,6 +155,46 @@ latest_per_posting as (
 
 ),
 
+-- The last day the pipeline ingested anything, taken from the data rather
+-- than from the clock. Two reasons. A run that does not happen must not
+-- shrink the dataset -- if the schedule fails for three days, the answer is
+-- still the last thing measured, not three days of decay. And the fixture
+-- carries one fixed run date, so a window measured against today would empty
+-- it the week after it was written and take the parity gate with it.
+latest_run as (
+
+    select max(run_date) as run_date from unioned
+
+),
+
+-- Only postings the source has shown us recently.
+--
+-- `latest_per_posting` says when a posting was last seen; it never said that
+-- had to be lately. On a database holding one day those are the same
+-- sentence, which is why this was invisible until the warehouse began to
+-- accumulate. On thirty days it stops being: "every posting seen at least
+-- once this month" counts vacancies that were filled and withdrawn weeks ago,
+-- and the published total climbs every morning while the market does not.
+--
+-- The window is one number, in dbt_project.yml, and is not the retention
+-- window. Retention bounds storage; this defines "currently advertised". They
+-- answer different questions and need not agree.
+--
+-- The comparison is against the newest run across both sources, not per
+-- source. If one API stops answering, its postings age out and the count
+-- falls -- which is the signal. Per-source freshness would hide a dead feed
+-- behind figures that still look healthy.
+current_postings as (
+
+    select p.*
+    from latest_per_posting p
+    cross join latest_run r
+    where p.run_rank = 1
+      and {{ days_between('r.run_date', 'p.run_date') }}
+            < {{ var('posting_freshness_days') }}
+
+),
+
 deduplicated as (
 
     select
@@ -172,8 +214,7 @@ deduplicated as (
                 -- has to be reproducible.
                 posting_id
         ) as dedup_rank
-    from latest_per_posting
-    where run_rank = 1
+    from current_postings
 
 )
 

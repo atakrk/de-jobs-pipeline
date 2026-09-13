@@ -65,6 +65,23 @@ window reads as having none. Widen the window rather than work around that.
 The Postgres loader does not prune; a question about last month is answered
 locally.
 
+**Seven days of freshness, thirty of retention, and they are not the same
+number.** `posting_freshness_days` in `dbt_project.yml` defines *currently
+advertised*: `int_postings` keeps only postings seen in a run within that
+window. Retention bounds what the warehouse stores; freshness bounds what
+counts as a vacancy. A posting last seen three weeks ago has been filled, and
+counting it would make the published total climb every morning while the market
+stands still — which is exactly what would have happened the day the warehouse
+started accumulating, because on a one-day database "last seen" and "seen
+lately" are the same sentence.
+
+The window is measured against the newest run in the data, not against today.
+A schedule that fails for three days must not shrink the dataset, and the
+fixture carries one fixed run date — measured against the clock it would empty
+itself a week after it was written and take the parity gate with it. It is
+also measured across both sources, not per source, so a dead feed shows up as
+a falling count instead of hiding behind healthy-looking figures.
+
 **Anything that picks one row must order totally.** `row_number()` over an
 ordering with ties leaves the winner to the engine, and two engines choose
 differently — one employer advertising the same title in two cities was enough

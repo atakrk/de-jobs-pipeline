@@ -222,3 +222,22 @@
         {{ exceptions.raise_compiler_error("type_timestamp has no implementation for target type '" ~ target.type ~ "'") }}
     {%- endif -%}
 {%- endmacro %}
+
+
+{#
+    Whole days between two dates, as `later - earlier`.
+
+    Postgres subtracts dates directly and returns an integer; Spark rejects the
+    operator and wants datediff. Used by the freshness window, where getting
+    the sign or the unit wrong silently changes how many postings are counted
+    rather than failing.
+#}
+{% macro days_between(later, earlier) -%}
+    {%- if target.type == 'postgres' -%}
+        ({{ later }} - {{ earlier }})
+    {%- elif target.type == 'databricks' -%}
+        datediff({{ later }}, {{ earlier }})
+    {%- else -%}
+        {{ exceptions.raise_compiler_error("days_between has no implementation for target type '" ~ target.type ~ "'") }}
+    {%- endif -%}
+{%- endmacro %}
