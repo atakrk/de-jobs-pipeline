@@ -33,6 +33,14 @@ only input both can be given identically.
 This truncates the raw tables it writes to. Point it at the local Postgres or
 at a throwaway schema, never at one holding a real run -- RAW_SCHEMA and
 DATABRICKS_SCHEMA exist so the Databricks side can be sent somewhere harmless.
+
+Recovering the local Postgres afterwards takes a truncate, not just a reload:
+the loaders upsert, so re-running one leaves these synthetic rows sitting
+beside the real ones and every count three too high.
+
+    psql -c 'truncate raw.arbeitsagentur_postings, raw.arbeitsagentur_details,
+             raw.arbeitnow_postings, raw.ingest_runs'
+    python load/load_raw.py
 """
 
 from __future__ import annotations
