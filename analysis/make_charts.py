@@ -10,6 +10,7 @@ Usage:
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -18,9 +19,10 @@ import matplotlib
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
-import psycopg
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import warehouse  # noqa: E402
 from common import log  # noqa: E402
 
 OUT_DIR = Path(__file__).resolve().parent / "charts"
@@ -49,16 +51,6 @@ plt.rcParams.update({
 })
 
 
-def connect() -> psycopg.Connection:
-    return psycopg.connect(
-        host=os.getenv("PGHOST", "localhost"),
-        port=os.getenv("PGPORT", "5433"),
-        dbname=os.getenv("PGDATABASE", "jobs"),
-        user=os.getenv("PGUSER", "jobs"),
-        password=os.getenv("PGPASSWORD", "jobs"),
-    )
-
-
 def strip_frame(ax, keep_left: bool = True) -> None:
     for side in ("top", "right", "bottom"):
         ax.spines[side].set_visible(False)
@@ -67,11 +59,11 @@ def strip_frame(ax, keep_left: bool = True) -> None:
     ax.tick_params(length=0)
 
 
-def chart_skills(conn) -> None:
+def chart_skills(conn, marts: str) -> None:
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(f"""
             select display_name, postings, pct_of_postings
-            from analytics_marts.mart_skill_frequency
+            from {marts}.mart_skill_frequency
             order by postings desc
             limit 15
         """)
@@ -102,7 +94,7 @@ def chart_skills(conn) -> None:
     log.info("wrote skill_frequency.png")
 
 
-def chart_language(conn) -> None:
+def chart_language(conn, marts: str) -> None:
     """One population, three outcomes.
 
     This chart used to compare the two sources side by side. That comparison
@@ -114,9 +106,9 @@ def chart_language(conn) -> None:
     says nothing either way.
     """
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(f"""
             select postings, requires_german, english_without_german
-            from analytics_marts.mart_language_requirement
+            from {marts}.mart_language_requirement
             where population = 'ALL'
         """)
         total, german, english = cur.fetchone()
@@ -163,10 +155,15 @@ def chart_language(conn) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    warehouse.add_target_argument(parser)
+    args = parser.parse_args()
+
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    with connect() as conn:
-        chart_skills(conn)
-        chart_language(conn)
+    conn, marts = warehouse.connect(args.target)
+    with conn:
+        chart_skills(conn, marts)
+        chart_language(conn, marts)
     log.info("charts written to %s", OUT_DIR)
 
 

@@ -17,14 +17,14 @@ Usage:
 
 from __future__ import annotations
 
-import os
+import argparse
 import sys
 from datetime import date
 from pathlib import Path
 
-import psycopg
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import warehouse  # noqa: E402
 from common import log  # noqa: E402
 
 README = Path(__file__).resolve().parents[1] / "README.md"
@@ -34,22 +34,12 @@ END = "<!-- FINDINGS:END -->"
 CLOUDS = ["azure", "aws", "gcp"]
 
 
-def connect() -> psycopg.Connection:
-    return psycopg.connect(
-        host=os.getenv("PGHOST", "localhost"),
-        port=os.getenv("PGPORT", "5433"),
-        dbname=os.getenv("PGDATABASE", "jobs"),
-        user=os.getenv("PGUSER", "jobs"),
-        password=os.getenv("PGPASSWORD", "jobs"),
-    )
-
-
-def build_block(cur) -> str:
-    cur.execute("""
+def build_block(cur, marts: str, intermediate: str) -> str:
+    cur.execute(f"""
         select population, postings, pct_requires_german,
                pct_english_without_german, requires_german,
                english_without_german
-        from analytics_marts.mart_language_requirement
+        from {marts}.mart_language_requirement
         where population = 'ALL'
     """)
     row = cur.fetchone()
@@ -57,18 +47,19 @@ def build_block(cur) -> str:
         raise SystemExit("mart_language_requirement has no ALL row")
     _, with_text, pct_german, pct_english, n_german, n_english = row
 
-    cur.execute("select count(*) from analytics_intermediate.int_postings")
+    cur.execute(f"select count(*) from {intermediate}.int_postings")
     total_postings = cur.fetchone()[0]
 
-    cur.execute(
-        """
+    # Spelled inline rather than bound: `= any(%s)` is Postgres, the two
+    # connectors disagree on the placeholder, and CLOUDS is a constant in this
+    # file rather than anything a caller supplies.
+    cloud_list = ", ".join(f"'{skill}'" for skill in CLOUDS)
+    cur.execute(f"""
         select skill_key, display_name, postings, pct_of_postings
-        from analytics_marts.mart_skill_frequency
-        where skill_key = any(%s)
+        from {marts}.mart_skill_frequency
+        where skill_key in ({cloud_list})
         order by postings desc
-        """,
-        (CLOUDS,),
-    )
+    """)
     clouds = cur.fetchall()
 
     neither = with_text - n_german - n_english
@@ -116,12 +107,19 @@ def build_block(cur) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    warehouse.add_target_argument(parser)
+    args = parser.parse_args()
+
     text = README.read_text(encoding="utf-8")
     if START not in text or END not in text:
         raise SystemExit(f"README is missing the {START} / {END} markers")
 
-    with connect() as conn, conn.cursor() as cur:
-        block = build_block(cur)
+    conn, marts = warehouse.connect(args.target)
+    intermediate = marts.replace(warehouse.MARTS_SCHEMA,
+                                 warehouse.INTERMEDIATE_SCHEMA)
+    with conn, conn.cursor() as cur:
+        block = build_block(cur, marts, intermediate)
 
     before = text[: text.index(START)]
     after = text[text.index(END) + len(END) :]

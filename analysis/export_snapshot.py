@@ -20,12 +20,13 @@ from __future__ import annotations
 
 import argparse
 import csv
-import os
 import sys
 from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "ingest"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import warehouse  # noqa: E402
 from common import log  # noqa: E402
 
 OUT_ROOT = Path(__file__).resolve().parents[1] / "data" / "snapshots"
@@ -38,51 +39,18 @@ MARTS = [
 ]
 
 
-def connect(target: str):
-    """The connection, and the prefix the marts are qualified by.
-
-    Imports are local so that running against one engine does not require the
-    other's driver to be installed.
-    """
-    if target == "postgres":
-        import psycopg
-
-        conn = psycopg.connect(
-            host=os.getenv("PGHOST", "localhost"),
-            port=os.getenv("PGPORT", "5433"),
-            dbname=os.getenv("PGDATABASE", "jobs"),
-            user=os.getenv("PGUSER", "jobs"),
-            password=os.getenv("PGPASSWORD", "jobs"),
-        )
-        return conn, ""
-
-    if target == "databricks":
-        from databricks import sql as dbsql
-
-        conn = dbsql.connect(
-            server_hostname=os.environ["DATABRICKS_HOST"],
-            http_path=os.environ["DATABRICKS_HTTP_PATH"],
-            access_token=os.environ["DATABRICKS_TOKEN"],
-        )
-        return conn, os.getenv("DATABRICKS_CATALOG", "workspace") + "."
-
-    raise SystemExit(f"unknown target '{target}' - expected postgres or databricks")
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--target", default="postgres",
-                        choices=["postgres", "databricks"],
-                        help="which warehouse the marts were built in")
+    warehouse.add_target_argument(parser)
     args = parser.parse_args()
 
     out_dir = OUT_ROOT / date.today().isoformat()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    conn, prefix = connect(args.target)
+    conn, marts = warehouse.connect(args.target)
     with conn, conn.cursor() as cur:
         for mart in MARTS:
-            cur.execute(f"select * from {prefix}analytics_marts.{mart}")
+            cur.execute(f"select * from {marts}.{mart}")
             # Indexed rather than by name: psycopg returns Column objects and
             # the Databricks connector returns plain tuples.
             columns = [c[0] for c in cur.description]
