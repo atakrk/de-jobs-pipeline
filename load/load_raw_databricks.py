@@ -54,10 +54,14 @@ RAW_TABLES = [
 # How many days of runs the warehouse keeps. See prune().
 RETAIN_DAYS = 30
 
-# Statement size is the binding constraint, not row count: a single posting
-# description can run to several kilobytes, so batches are kept small enough
-# that a batch stays well inside the warehouse's statement limit.
-BATCH_ROWS = 100
+# The warehouse rejects a statement whose bound parameters exceed 1 MB in
+# total. Row count is a poor proxy for that -- one posting description runs to
+# several kilobytes and the next is a single line -- so batches are filled by
+# measured size, with headroom for the statement text around them. A row count
+# still caps the batch so a very large number of tiny rows cannot build an
+# unreasonable statement.
+PARAM_BUDGET_BYTES = 800_000
+MAX_BATCH_ROWS = 500
 
 
 def required_env(name: str) -> str:
@@ -101,6 +105,32 @@ def ensure_schema(cur, catalog: str, schema: str | None = None) -> None:
             cur.execute(stripped)
 
 
+def param_bytes(row: tuple) -> int:
+    """What this row will contribute to the statement's parameter budget."""
+    return sum(len(str(value).encode("utf-8")) for value in row)
+
+
+def batches(rows: list[tuple]):
+    """Group rows into statements that stay inside the parameter limit.
+
+    A row larger than the budget on its own is still yielded alone rather than
+    silently dropped: it will fail, and an error naming one oversized posting
+    is worth more than a load that quietly skipped it.
+    """
+    batch: list[tuple] = []
+    size = 0
+    for row in rows:
+        row_size = param_bytes(row)
+        if batch and (size + row_size > PARAM_BUDGET_BYTES
+                      or len(batch) >= MAX_BATCH_ROWS):
+            yield batch
+            batch, size = [], 0
+        batch.append(row)
+        size += row_size
+    if batch:
+        yield batch
+
+
 def replace_run(cur, table: str, columns: list[str], rows: list[tuple],
                 run_date: str, source_filter: str | None = None) -> int:
     """Delete this run date, then insert it.
@@ -124,8 +154,7 @@ def replace_run(cur, table: str, columns: list[str], rows: list[tuple],
 
     column_list = ", ".join(columns + ["loaded_at"])
     placeholders = ", ".join(["?"] * len(columns)) + ", current_timestamp()"
-    for start in range(0, len(rows), BATCH_ROWS):
-        batch = rows[start:start + BATCH_ROWS]
+    for batch in batches(rows):
         values = ", ".join(f"({placeholders})" for _ in batch)
         flat = [value for row in batch for value in row]
         cur.execute(f"INSERT INTO {table} ({column_list}) VALUES {values}", flat)
