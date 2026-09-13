@@ -14,18 +14,20 @@
 --   duplicates, which is the same guarantee (source_id, run_date) gives in
 --   Postgres, arrived at differently.
 --
--- {catalog} is substituted by the loader.
+-- {catalog} and {schema} are substituted by the loader. The schema is not
+-- hardcoded so the fixture gate can be pointed at a throwaway one in the
+-- same workspace, where it cannot reach a table holding a real run.
 
-CREATE SCHEMA IF NOT EXISTS {catalog}.raw;
+CREATE SCHEMA IF NOT EXISTS {catalog}.{schema};
 
-CREATE TABLE IF NOT EXISTS {catalog}.raw.ingest_runs (
+CREATE TABLE IF NOT EXISTS {catalog}.{schema}.ingest_runs (
     source      STRING    NOT NULL,
     run_date    DATE      NOT NULL,
     manifest    STRING    NOT NULL,
     loaded_at   TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS {catalog}.raw.arbeitsagentur_postings (
+CREATE TABLE IF NOT EXISTS {catalog}.{schema}.arbeitsagentur_postings (
     source_id   STRING    NOT NULL,
     run_date    DATE      NOT NULL,
     search_term STRING,
@@ -33,14 +35,14 @@ CREATE TABLE IF NOT EXISTS {catalog}.raw.arbeitsagentur_postings (
     loaded_at   TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS {catalog}.raw.arbeitsagentur_details (
+CREATE TABLE IF NOT EXISTS {catalog}.{schema}.arbeitsagentur_details (
     source_id   STRING    NOT NULL,
     run_date    DATE      NOT NULL,
     payload     STRING    NOT NULL,
     loaded_at   TIMESTAMP NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS {catalog}.raw.arbeitnow_postings (
+CREATE TABLE IF NOT EXISTS {catalog}.{schema}.arbeitnow_postings (
     source_id   STRING    NOT NULL,
     run_date    DATE      NOT NULL,
     payload     STRING    NOT NULL,

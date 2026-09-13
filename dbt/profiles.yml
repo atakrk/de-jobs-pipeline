@@ -31,5 +31,8 @@ de_jobs:
       http_path: "{{ env_var('DATABRICKS_HTTP_PATH', '') }}"
       token: "{{ env_var('DATABRICKS_TOKEN', '') }}"
       catalog: "{{ env_var('DATABRICKS_CATALOG', 'workspace') }}"
-      schema: analytics
+      # The fixture gate builds in the same workspace as production and must
+      # not be able to reach its tables. Overriding this moves every model
+      # into <schema>_staging / _intermediate / _marts, away from analytics_*.
+      schema: "{{ env_var('DATABRICKS_SCHEMA', 'analytics') }}"
       threads: 4

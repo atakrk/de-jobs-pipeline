@@ -76,7 +76,12 @@ def connect():
     )
 
 
-def ensure_schema(cur, catalog: str) -> None:
+def raw_schema() -> str:
+    """Where the raw tables live. Overridden only by the fixture gate."""
+    return os.getenv("RAW_SCHEMA", "raw")
+
+
+def ensure_schema(cur, catalog: str, schema: str | None = None) -> None:
     """Apply the schema file one statement at a time.
 
     The connector takes a single statement per execute, so the file has to be
@@ -85,7 +90,8 @@ def ensure_schema(cur, catalog: str) -> None:
     comment line looking like a statement of its own. Only whole-line `--`
     comments are recognised, which is all this file uses.
     """
-    text = SCHEMA_FILE.read_text("utf-8").format(catalog=catalog)
+    text = SCHEMA_FILE.read_text("utf-8").format(
+        catalog=catalog, schema=schema or raw_schema())
     body = "\n".join(
         line for line in text.splitlines() if not line.strip().startswith("--")
     )
@@ -143,7 +149,7 @@ def prune(cur, catalog: str, retain_days: int) -> None:
     Not on the Postgres loader. The laptop database keeps the long history,
     which is where a question about last month gets answered.
     """
-    raw = f"{catalog}.raw"
+    raw = f"{catalog}.{raw_schema()}"
     cutoff = f"run_date < date_sub(current_date(), {int(retain_days)})"
 
     rows_pruned = 0
@@ -171,7 +177,7 @@ def as_json(payload: dict) -> str:
 
 
 def write_run(cur, catalog: str, run) -> None:
-    raw = f"{catalog}.raw"
+    raw = f"{catalog}.{raw_schema()}"
 
     if run.manifest is not None:
         replace_run(
@@ -219,7 +225,7 @@ def main() -> None:
 
     with connect() as conn, conn.cursor() as cur:
         ensure_schema(cur, catalog)
-        log.info("schema ready in %s.raw", catalog)
+        log.info("schema ready in %s.%s", catalog, raw_schema())
 
         for source, run_dir in iter_runs(RAW_DIR, args.run_date):
             run = read_run(source, run_dir)
@@ -232,8 +238,8 @@ def main() -> None:
 
         prune(cur, catalog, args.retain_days)
 
-    log.info("loaded %d postings and %d details into %s.raw",
-             postings, details, catalog)
+    log.info("loaded %d postings and %d details into %s.%s",
+             postings, details, catalog, raw_schema())
 
 
 if __name__ == "__main__":

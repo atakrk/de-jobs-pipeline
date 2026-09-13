@@ -2,7 +2,9 @@ version: 2
 
 sources:
   - name: raw
-    schema: raw
+    # Overridable so the fixture gate can build against its own raw
+    # schema instead of the one holding real runs.
+    schema: "{{ env_var('RAW_SCHEMA', 'raw') }}"
     description: Untouched API payloads, one row per posting per ingest run.
     tables:
       - name: arbeitsagentur_postings
