@@ -46,7 +46,18 @@ reviewable, never in the Python loader. Everything downstream must be
 reproducible from the JSON on disk.
 
 **Grain is `(source_id, run_date)`.** Reruns of a day update in place; days
-accumulate. Do not collapse this to one row per posting.
+accumulate. Do not collapse this to one row per posting. The grain is enforced
+in `load/rows.py`, where both loaders read, and not by the Postgres primary
+key: a run legitimately reads the same posting several times — the federal API
+answers once per search term — and for a long time only the upsert was
+collapsing those. Delta has no primary key, so the same files landed a fifth
+heavier there. A guarantee that only one platform provides is an accident.
+
+**Anything that picks one row must order totally.** `row_number()` over an
+ordering with ties leaves the winner to the engine, and two engines choose
+differently — one employer advertising the same title in two cities was enough
+to make the city counts disagree. Fall through to something unique. An
+arbitrary winner is fine; an irreproducible one is not.
 
 **Skill patterns live in `dbt/seeds/skills.csv`, never in SQL.** Adding a tool
 is a data change. Patterns match with word boundaries — without them `sql`
@@ -80,7 +91,11 @@ model, and do not inline platform syntax "just this once".
 
 **A port is verified by diffing output, not by building.** Every plausible
 rewrite compiles, and a wrong one returns fewer rows rather than an error.
-Build both versions against the same fixture and diff the tables.
+Build both versions against the same fixture and diff the tables —
+`scripts/fixture.py`. Then do it again on the real data with
+`scripts/compare_targets.py`, because the two failures that mattered were a
+grain nobody had written down and two real postings that tie, and a fixture
+can contain neither.
 
 **Do not disable TLS verification.** Community docs for the federal API suggest
 it. The handshake works fine.
