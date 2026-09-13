@@ -63,11 +63,20 @@ def connect():
 
 
 def ensure_schema(cur, catalog: str) -> None:
-    statements = SCHEMA_FILE.read_text("utf-8").format(catalog=catalog)
-    for statement in statements.split(";"):
-        stripped = "\n".join(
-            line for line in statement.splitlines() if not line.strip().startswith("--")
-        ).strip()
+    """Apply the schema file one statement at a time.
+
+    The connector takes a single statement per execute, so the file has to be
+    split. Comments come out before the split, not after: the file's prose
+    contains a semicolon, and splitting first leaves the remainder of that
+    comment line looking like a statement of its own. Only whole-line `--`
+    comments are recognised, which is all this file uses.
+    """
+    text = SCHEMA_FILE.read_text("utf-8").format(catalog=catalog)
+    body = "\n".join(
+        line for line in text.splitlines() if not line.strip().startswith("--")
+    )
+    for statement in body.split(";"):
+        stripped = statement.strip()
         if stripped:
             cur.execute(stripped)
 
