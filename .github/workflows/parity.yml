@@ -25,10 +25,14 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Keyed by ref: two pushes to the same branch need not both run, but a push
-  # to main must not cancel one already checking another branch.
-  group: parity-${{ github.ref }}
-  cancel-in-progress: true
+  # Both workflows drive the same 2X-Small serverless warehouse -- the only one
+  # a free workspace gets -- so they queue rather than run together. Never
+  # cancel-in-progress here: it is not a stale build being superseded, it is a
+  # job holding the warehouse, and killing it mid-write leaves a run date half
+  # loaded. A parity run therefore waits for the daily one, which is the right
+  # way round: the schedule is production.
+  group: databricks-warehouse
+  cancel-in-progress: false
 
 jobs:
   fixture-diff:
