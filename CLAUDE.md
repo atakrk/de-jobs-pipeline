@@ -53,6 +53,17 @@ answers once per search term — and for a long time only the upsert was
 collapsing those. Delta has no primary key, so the same files landed a fifth
 heavier there. A guarantee that only one platform provides is an accident.
 
+**Databricks keeps thirty days; the laptop keeps everything.** The warehouse is
+written to daily, so `load_raw_databricks.py --retain-days` bounds it and
+deletes older run dates after loading, logging what went. The models ask two
+things of history — the latest run per posting, and the newest description
+ever fetched for it — and neither reaches past the life of a posting, so the
+window only has to outlive one. The bound is real: a description fetched forty
+days ago is gone, and a posting whose text was never re-fetched inside the
+window reads as having none. Widen the window rather than work around that.
+The Postgres loader does not prune; a question about last month is answered
+locally.
+
 **Anything that picks one row must order totally.** `row_number()` over an
 ordering with ties leaves the winner to the engine, and two engines choose
 differently — one employer advertising the same title in two cities was enough

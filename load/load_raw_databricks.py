@@ -17,10 +17,14 @@ than from a preference:
 Credentials come from the environment and are never logged:
     DATABRICKS_HOST, DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN, DATABRICKS_CATALOG
 
+Unlike the Postgres loader this one prunes: the warehouse is written to daily
+and has to stay bounded. See prune() for the window and what it costs.
+
 Usage:
     set -a; source .env; set +a
     python load/load_raw_databricks.py
     python load/load_raw_databricks.py --run-date 2026-09-12
+    python load/load_raw_databricks.py --retain-days 90
 """
 
 from __future__ import annotations
@@ -39,6 +43,16 @@ from common import RAW_DIR, log  # noqa: E402
 from rows import iter_runs, read_run  # noqa: E402
 
 SCHEMA_FILE = Path(__file__).resolve().parent / "schema_databricks.sql"
+
+RAW_TABLES = [
+    "ingest_runs",
+    "arbeitsagentur_postings",
+    "arbeitsagentur_details",
+    "arbeitnow_postings",
+]
+
+# How many days of runs the warehouse keeps. See prune().
+RETAIN_DAYS = 30
 
 # Statement size is the binding constraint, not row count: a single posting
 # description can run to several kilobytes, so batches are kept small enough
@@ -112,6 +126,45 @@ def replace_run(cur, table: str, columns: list[str], rows: list[tuple],
     return len(rows)
 
 
+def prune(cur, catalog: str, retain_days: int) -> None:
+    """Drop run dates that have fallen out of the retention window.
+
+    This runs daily and accumulates, so it needs a bound. The models ask two
+    things of history: the latest run per posting, and the newest description
+    ever fetched for it. Neither reaches further back than the life of a
+    posting, so the window only has to outlive one -- thirty days does, with
+    room to spare.
+
+    The bound is real and accepted: a description fetched forty days ago is
+    gone, and a posting still listed today whose text was never re-fetched
+    inside the window reads as having no description. Widen the window rather
+    than work around that.
+
+    Not on the Postgres loader. The laptop database keeps the long history,
+    which is where a question about last month gets answered.
+    """
+    raw = f"{catalog}.raw"
+    cutoff = f"run_date < date_sub(current_date(), {int(retain_days)})"
+
+    rows_pruned = 0
+    dates_pruned: set[str] = set()
+
+    for table in RAW_TABLES:
+        cur.execute(f"SELECT run_date, count(*) FROM {raw}.{table} "
+                    f"WHERE {cutoff} GROUP BY run_date")
+        for run_date, count in cur.fetchall():
+            rows_pruned += count
+            dates_pruned.add(str(run_date))
+        cur.execute(f"DELETE FROM {raw}.{table} WHERE {cutoff}")
+
+    if rows_pruned:
+        log.info("pruned %d rows across %d run dates older than %d days (%s)",
+                 rows_pruned, len(dates_pruned), retain_days,
+                 ", ".join(sorted(dates_pruned)))
+    else:
+        log.info("nothing older than %d days to prune", retain_days)
+
+
 def as_json(payload: dict) -> str:
     """JSON text, unescaped. The German is stored as German."""
     return json.dumps(payload, ensure_ascii=False)
@@ -152,6 +205,9 @@ def write_run(cur, catalog: str, run) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-date", help="load only this run date (YYYY-MM-DD)")
+    parser.add_argument("--retain-days", type=int, default=RETAIN_DAYS,
+                        help=f"days of runs to keep (default {RETAIN_DAYS}); "
+                             "older run dates are deleted after loading")
     args = parser.parse_args()
 
     if not RAW_DIR.exists():
@@ -173,6 +229,8 @@ def main() -> None:
                      run.duplicates)
             postings += run.posting_count
             details += run.detail_count
+
+        prune(cur, catalog, args.retain_days)
 
     log.info("loaded %d postings and %d details into %s.raw",
              postings, details, catalog)
