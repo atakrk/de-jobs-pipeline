@@ -140,7 +140,15 @@ deduplicated as (
             order by
                 -- prefer the federal source: it carries salary and region
                 case when source = 'arbeitsagentur' then 0 else 1 end,
-                published_at desc nulls last
+                published_at desc nulls last,
+                -- and break the remaining ties on something unique, or the
+                -- winner is whichever row the engine happened to reach first.
+                -- One employer advertised the same title in Bremen and
+                -- Osnabrück on the same day: Postgres kept Bremen, Databricks
+                -- kept Osnabrück, and neither was wrong because nothing in the
+                -- ordering said which should win. The choice is arbitrary; it
+                -- has to be reproducible.
+                posting_id
         ) as dedup_rank
     from latest_per_posting
     where run_rank = 1
