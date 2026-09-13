@@ -20,15 +20,15 @@ so any number here can be traced back to the run that produced it.
 
 *Generated from the latest pipeline run (2026-09-13); these figures change when it does.*
 
-**411 postings** after scope filtering, location validation and deduplication; **411** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 411.
+**671 postings** after scope filtering, location validation and deduplication; **665** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 665.
 
 ### Cloud platforms
 
 | | share of postings |
 | --- | --- |
-| Azure | 29.9% |
-| AWS | 21.7% |
-| Google Cloud | 9.7% |
+| Azure | 27.8% |
+| AWS | 20.2% |
+| Google Cloud | 12.5% |
 
 Azure appears **1.4×** as often as AWS.
 
@@ -36,7 +36,7 @@ Azure appears **1.4×** as often as AWS.
 
 | requires German | mentions English, no German requirement | neither stated |
 | --- | --- | --- |
-| **41.6%** | **31.1%** | **27.3%** |
+| **38.8%** | **33.8%** | **27.4%** |
 
 <!-- FINDINGS:END -->
 
