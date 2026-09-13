@@ -53,6 +53,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "load"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "analysis"))
+from warehouse import required_env  # noqa: E402
 
 RUN = "2026-09-12"
 
@@ -195,9 +197,9 @@ def connect(target: str):
         from databricks import sql as dbsql
 
         conn = dbsql.connect(
-            server_hostname=os.environ["DATABRICKS_HOST"],
-            http_path=os.environ["DATABRICKS_HTTP_PATH"],
-            access_token=os.environ["DATABRICKS_TOKEN"],
+            server_hostname=required_env("DATABRICKS_HOST"),
+            http_path=required_env("DATABRICKS_HTTP_PATH"),
+            access_token=required_env("DATABRICKS_TOKEN"),
         )
         return conn, "?"
 

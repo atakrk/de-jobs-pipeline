@@ -38,6 +38,26 @@ def add_target_argument(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def required_env(name: str) -> str:
+    """A missing credential should say which one.
+
+    Empty counts as missing: an unset GitHub secret interpolates to an empty
+    string rather than disappearing, and an empty hostname reaches the driver
+    as a URL it tries to negotiate OAuth against. The resulting error names
+    neither the variable nor the workflow.
+
+    load/load_raw_databricks.py keeps its own copy: load/ does not import from
+    analysis/, and one small function in each beats a dependency between them.
+    """
+    value = os.getenv(name)
+    if not value:
+        raise SystemExit(
+            f"{name} is not set. Locally: set -a; source .env; set +a. "
+            "In CI: check the repository secret of the same name."
+        )
+    return value
+
+
 def connect(target: str, schema: str = MARTS_SCHEMA):
     """A connection, and the qualified schema to read from.
 
@@ -60,9 +80,9 @@ def connect(target: str, schema: str = MARTS_SCHEMA):
         from databricks import sql as dbsql
 
         conn = dbsql.connect(
-            server_hostname=os.environ["DATABRICKS_HOST"],
-            http_path=os.environ["DATABRICKS_HTTP_PATH"],
-            access_token=os.environ["DATABRICKS_TOKEN"],
+            server_hostname=required_env("DATABRICKS_HOST"),
+            http_path=required_env("DATABRICKS_HTTP_PATH"),
+            access_token=required_env("DATABRICKS_TOKEN"),
         )
         catalog = os.getenv("DATABRICKS_CATALOG", "workspace")
         return conn, f"{catalog}.{schema}"
