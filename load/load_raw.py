@@ -96,8 +96,9 @@ def main() -> None:
         for source, run_dir in iter_runs(RAW_DIR, args.run_date):
             run = read_run(source, run_dir)
             write_run(cur, run)
-            log.info("%-16s %s -> %d postings, %d details",
-                     source, run.run_date, run.posting_count, run.detail_count)
+            log.info("%-16s %s -> %d postings, %d details (%d duplicates collapsed)",
+                     source, run.run_date, run.posting_count, run.detail_count,
+                     run.duplicates)
             postings += run.posting_count
             details += run.detail_count
 

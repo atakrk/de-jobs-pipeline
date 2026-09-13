@@ -28,6 +28,7 @@ class RunRows:
     ag_postings: list[tuple] = field(default_factory=list)   # (id, run_date, search_term, payload)
     ag_details: list[tuple] = field(default_factory=list)    # (id, run_date, payload)
     an_postings: list[tuple] = field(default_factory=list)   # (id, run_date, payload)
+    duplicates: int = 0                                      # rows collapsed by the grain
 
     @property
     def posting_count(self) -> int:
@@ -44,6 +45,30 @@ def posting_id(posting: dict) -> str | None:
         if posting.get(name):
             return str(posting[name])
     return None
+
+
+def dedupe(rows: list[tuple]) -> list[tuple]:
+    """Collapse rows sharing (source_id, run_date), keeping the last.
+
+    A run legitimately reads the same posting more than once. The federal API
+    is queried once per search term, and a posting matching two of them comes
+    back under each -- about a fifth of a day's rows -- while both boards also
+    repeat a posting across a page boundary.
+
+    Postgres has been absorbing this invisibly: the raw tables carry a primary
+    key on (source_id, run_date) and the loader upserts, so the last write won
+    and every published figure has always been over distinct postings. Delta
+    enforces no primary key, so the same files landed 463 rows heavier on
+    Databricks and took every downstream count with them.
+
+    The grain is a property of the data, not of one platform's constraint, so
+    it is enforced here, where both loaders read. Last wins, because that is
+    what ON CONFLICT DO UPDATE did -- this changes no Postgres result.
+    """
+    collapsed: dict[tuple, tuple] = {}
+    for row in rows:
+        collapsed[(row[0], row[1])] = row
+    return list(collapsed.values())
 
 
 def read_run(source: str, run_dir: Path) -> RunRows:
@@ -78,6 +103,14 @@ def read_run(source: str, run_dir: Path) -> RunRows:
         for detail_file in sorted((run_dir / "details").glob("*.json")):
             blob = json.loads(detail_file.read_text("utf-8"))
             rows.ag_details.append((blob["id"], run_date, blob["payload"]))
+
+    before = len(rows.ag_postings) + len(rows.ag_details) + len(rows.an_postings)
+    rows.ag_postings = dedupe(rows.ag_postings)
+    rows.ag_details = dedupe(rows.ag_details)
+    rows.an_postings = dedupe(rows.an_postings)
+    rows.duplicates = before - (
+        len(rows.ag_postings) + len(rows.ag_details) + len(rows.an_postings)
+    )
 
     return rows
 
