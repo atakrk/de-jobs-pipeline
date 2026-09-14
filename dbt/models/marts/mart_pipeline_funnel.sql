@@ -19,6 +19,12 @@ with scored as (
 
 ),
 
+ingest_runs as (
+
+    select * from {{ ref('stg_ingest_runs') }}
+
+),
+
 -- Stage 1 has to come from the loader. The grain is applied in load/rows.py,
 -- before the insert, so by the time anything is queryable the duplicates are
 -- already gone and no dbt model can count what was read.
@@ -45,7 +51,7 @@ runs as (
 
     select sum(coalesce(r.rows_read, p.distinct_postings)) as rows_read
     from per_run p
-    left join {{ ref('stg_ingest_runs') }} r
+    left join ingest_runs r
       on r.source_name = p.source
      and r.run_date = p.run_date
 
