@@ -59,12 +59,14 @@ where run_rank = 1
 
 \echo ''
 \echo '=== 1. FUNNEL ==='
-\echo '(read from mart_pipeline_funnel, not recomputed -- see the header)'
+\echo '(read from mart_pipeline_funnel, not recomputed -- see the header.'
+\echo ' the unit changes where grain does: nothing is rejected on that row)'
 
 select
     stage_order,
     stage,
-    postings,
+    grain,
+    records,
     pct_of_previous,
     pct_of_first,
     dropped

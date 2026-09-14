@@ -10,15 +10,20 @@
 -- than counted from the model, so a stage 2 above it means the two disagree
 -- about what was ingested, which is exactly the disagreement this mart exists
 -- to make visible.
+--
+-- The unit change at stage 5 does not weaken this. Collapsing the runs of a
+-- posting into one can only reduce the count, so non-increasing still has to
+-- hold across the boundary even though the percentage across it means
+-- something else.
 
 with sequenced as (
 
     select
         stage_order,
         stage,
-        postings,
-        lag(postings)   over (order by stage_order) as previous_postings,
-        lag(stage)      over (order by stage_order) as previous_stage
+        records,
+        lag(records) over (order by stage_order) as previous_records,
+        lag(stage)   over (order by stage_order) as previous_stage
     from {{ ref('mart_pipeline_funnel') }}
 
 )
@@ -26,9 +31,9 @@ with sequenced as (
 select
     stage_order,
     previous_stage,
-    previous_postings,
+    previous_records,
     stage,
-    postings
+    records
 from sequenced
-where previous_postings is not null
-  and postings > previous_postings
+where previous_records is not null
+  and records > previous_records

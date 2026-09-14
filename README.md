@@ -35,18 +35,20 @@ Azure appears **1.4×** as often as AWS.
 
 ### What the published number is a share of
 
-Stages in the order the pipeline applies them. The last row is the denominator above.
+Stages in the order the pipeline applies them. The last row is the denominator above. Read the unit column: for the first stages a record is one posting on one day, because a vacancy listed all week is read again every morning.
 
-| stage | postings | of previous | of rows read |
-| --- | ---: | ---: | ---: |
-| rows read | 6,820 | — | 100.0% |
-| distinct postings | 5,867 | 86.0% | 86.0% |
-| title in scope | 2,149 | 36.6% | 31.5% |
-| in germany | 1,912 | 89.0% | 28.0% |
-| latest snapshot | 702 | 36.7% | 10.3% |
-| still advertised | 702 | 100.0% | 10.3% |
-| deduplicated | 671 | 95.6% | 9.8% |
-| with description | 665 | 99.1% | 9.8% |
+| stage | unit | records | of previous | of rows read |
+| --- | --- | ---: | ---: | ---: |
+| rows read | posting-run | 6,820 | — | 100.0% |
+| distinct postings | posting-run | 5,867 | 86.0% | 86.0% |
+| title in scope | posting-run | 2,149 | 36.6% | 31.5% |
+| in germany | posting-run | 1,912 | 89.0% | 28.0% |
+| latest snapshot | posting | 702 | 36.7% \* | 10.3% |
+| still advertised | posting | 702 | 100.0% | 10.3% |
+| deduplicated | posting | 671 | 95.6% | 9.8% |
+| with description | posting | 665 | 99.1% | 9.8% |
+
+\* The unit changes at **latest snapshot**: the several daily records of one posting collapse into one. Nothing is rejected there, so 36.7% is that collapse and not a survival rate.
 
 ### Language requirement
 

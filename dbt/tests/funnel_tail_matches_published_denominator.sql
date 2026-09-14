@@ -13,7 +13,7 @@
 
 with funnel as (
 
-    select postings
+    select records
     from {{ ref('mart_pipeline_funnel') }}
     where stage = 'with_description'
 
@@ -27,10 +27,10 @@ published as (
 )
 
 select
-    f.postings        as funnel_tail,
+    f.records            as funnel_tail,
     p.postings_with_text as published_denominator
 from funnel f
 full outer join published p
-  on f.postings = p.postings_with_text
-where f.postings is null
+  on f.records = p.postings_with_text
+where f.records is null
    or p.postings_with_text is null

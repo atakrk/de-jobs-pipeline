@@ -57,36 +57,48 @@ runs as (
 
 ),
 
+-- The unit changes at stage 5, and the column is called `records` rather than
+-- `postings` because of it. Stages 1 to 4 count one record per posting per
+-- run: a vacancy listed on four mornings is four records. Stage 5 keeps only
+-- the newest run of each, so from there down a record is a posting.
+--
+-- That makes stage 5 the one row in this table whose percentage is not a
+-- survival rate. Nothing is rejected there. Four runs of the same vacancy
+-- becoming one looks like a 63% loss and is not one, which is exactly the
+-- misreading the `grain` column exists to prevent -- and the reason it is a
+-- column rather than a comment, since the snapshot CSV and the README table
+-- are read without this file open.
 stages as (
 
-    select 1 as stage_order, 'rows_read' as stage,
-           (select rows_read from runs) as postings
+    select 1 as stage_order, 'rows_read' as stage, 'posting-run' as grain,
+           (select rows_read from runs) as records
 
     union all
-    select 2, 'distinct_postings', count(*) from scored
+    select 2, 'distinct_postings', 'posting-run', count(*) from scored
 
     union all
-    select 3, 'title_in_scope', count(*) from scored
+    select 3, 'title_in_scope', 'posting-run', count(*) from scored
     where title_in_scope
 
     union all
-    select 4, 'in_germany', count(*) from scored
+    select 4, 'in_germany', 'posting-run', count(*) from scored
     where title_in_scope and country_known
 
+    -- unit changes here: posting-run -> posting
     union all
-    select 5, 'latest_snapshot', count(*) from scored
+    select 5, 'latest_snapshot', 'posting', count(*) from scored
     where title_in_scope and country_known and run_rank = 1
 
     union all
-    select 6, 'still_advertised', count(*) from scored
+    select 6, 'still_advertised', 'posting', count(*) from scored
     where still_advertised
 
     union all
-    select 7, 'deduplicated', count(*) from scored
+    select 7, 'deduplicated', 'posting', count(*) from scored
     where still_advertised and dedup_rank = 1
 
     union all
-    select 8, 'with_description', count(*) from scored
+    select 8, 'with_description', 'posting', count(*) from scored
     where still_advertised and dedup_rank = 1 and has_description
 
 ),
@@ -101,11 +113,13 @@ sequenced as (
     select
         stage_order,
         stage,
-        postings,
-        lag(postings) over (order by stage_order)  as previous_postings,
-        first_value(postings) over (order by stage_order
-                                    rows between unbounded preceding
-                                             and unbounded following) as first_postings
+        grain,
+        records,
+        lag(records) over (order by stage_order)  as previous_records,
+        lag(grain)   over (order by stage_order)  as previous_grain,
+        first_value(records) over (order by stage_order
+                                   rows between unbounded preceding
+                                            and unbounded following) as first_records
     from stages
 
 )
@@ -113,9 +127,15 @@ sequenced as (
 select
     stage_order,
     stage,
-    postings,
-    round(100.0 * postings / nullif(previous_postings, 0), 1) as pct_of_previous,
-    round(100.0 * postings / nullif(first_postings, 0), 1)    as pct_of_first,
-    previous_postings - postings                              as dropped
+    grain,
+    records,
+    round(100.0 * records / nullif(previous_records, 0), 1) as pct_of_previous,
+    round(100.0 * records / nullif(first_records, 0), 1)    as pct_of_first,
+    previous_records - records                              as dropped,
+    -- True on the row where a record stops meaning one thing and starts
+    -- meaning another. Anything reading pct_of_previous as "what this filter
+    -- kept" has to skip this row, so the table says which one it is rather
+    -- than leaving every reader to work it out from the grain column.
+    previous_grain is not null and previous_grain <> grain  as grain_changes_here
 from sequenced
 order by stage_order

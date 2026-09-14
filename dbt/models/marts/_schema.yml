@@ -137,25 +137,57 @@ models:
                 - still_advertised
                 - deduplicated
                 - with_description
-      - name: postings
+      - name: grain
         description: >
-          Rows surviving this stage. Stage 1 is read from the loader's
-          manifest, because the grain collapses duplicates in load/rows.py
-          before anything reaches the warehouse and no model can count what
-          was read. It is a floor rather than an exact count while any run
-          loaded before that field existed is still inside the retention
-          window: those runs fall back to what survived the grain, which
-          understates them rather than inventing a number.
+          What one record is at this stage. Stages 1 to 4 count one record per
+          posting per run - a vacancy listed on four mornings is four records.
+          Stage 5 keeps only the newest run of each, so from there down a
+          record is a posting. Published as a column rather than left to a
+          comment because the snapshot CSV and the README table are read
+          without the model open.
+        tests:
+          - not_null
+          - accepted_values:
+              values: [posting-run, posting]
+      - name: records
+        description: >
+          Rows surviving this stage, in the unit the grain column names. Not
+          called postings, because for the first four stages they are not
+          postings.
+
+          Stage 1 is read from the loader's manifest, because the grain
+          collapses duplicates in load/rows.py before anything reaches the
+          warehouse and no model can count what was read. It is a floor rather
+          than an exact count while any run loaded before that field existed is
+          still inside the retention window: those runs fall back to what
+          survived the grain, which understates them rather than inventing a
+          number.
         tests: [not_null, non_negative]
       - name: pct_of_previous
         description: >
           What this stage kept of the stage above it. Answers "what did this
-          filter cost".
+          filter cost" - except on the row where grain_changes_here is true,
+          where it answers nothing of the sort. Nothing is rejected at stage 5:
+          the several runs of one posting become one record. That reads as a
+          63% loss and is not one.
       - name: pct_of_first
         description: >
-          What this stage kept of the rows originally read. Answers "what is
-          left of what we started with". Kept separate from pct_of_previous
+          What this stage kept of the records originally read. Answers "what is
+          left of what we started with", and spans the unit change, so it is a
+          ratio of postings to posting-runs from stage 5 down - the overall
+          reduction, not a survival rate. Kept separate from pct_of_previous
           because a reader who takes one for the other reads a 94% stage as a
           94% survival rate.
       - name: dropped
-        description: Rows this stage removed. Null on the first stage, which removes nothing.
+        description: >
+          Records this stage removed. Null on the first stage, which removes
+          nothing, and misleading on the row where the unit changes for the
+          same reason pct_of_previous is: those records were not dropped, they
+          were folded into each other.
+      - name: grain_changes_here
+        description: >
+          True on the single row where a record stops meaning one thing and
+          starts meaning another. Anything reading pct_of_previous or dropped
+          as "what this filter cost" has to skip that row, so the table names
+          it rather than leaving every reader to derive it.
+        tests: [not_null]

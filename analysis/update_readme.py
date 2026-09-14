@@ -65,7 +65,8 @@ def build_block(cur, marts: str, intermediate: str) -> str:
     clouds = cur.fetchall()
 
     cur.execute(f"""
-        select stage, postings, pct_of_previous, pct_of_first
+        select stage, grain, records, pct_of_previous, pct_of_first,
+               grain_changes_here
         from {marts}.mart_pipeline_funnel
         order by stage_order
     """)
@@ -116,17 +117,34 @@ def build_block(cur, marts: str, intermediate: str) -> str:
             # the day someone wrote it, and this whole table exists because a
             # number with no stages behind it cannot be debugged.
             "Stages in the order the pipeline applies them. The last row is the "
-            "denominator above.",
+            "denominator above. Read the unit column: for the first stages a "
+            "record is one posting on one day, because a vacancy listed all "
+            "week is read again every morning.",
             "",
-            "| stage | postings | of previous | of rows read |",
-            "| --- | ---: | ---: | ---: |",
+            "| stage | unit | records | of previous | of rows read |",
+            "| --- | --- | ---: | ---: | ---: |",
         ]
-        for stage, postings, of_previous, of_first in funnel:
+        collapse_stage = None
+        for stage, grain, records, of_previous, of_first, changes in funnel:
             previous = "—" if of_previous is None else f"{of_previous}%"
             first = "—" if of_first is None else f"{of_first}%"
+            if changes:
+                # Marked rather than silently footnoted: this is the largest
+                # fall in the table and the one that is not a filter at all.
+                collapse_stage = (stage.replace("_", " "), of_previous)
+                previous += " \*"
             lines.append(
-                f"| {stage.replace('_', ' ')} | {postings:,} | {previous} | {first} |"
+                f"| {stage.replace('_', ' ')} | {grain} | {records:,} | "
+                f"{previous} | {first} |"
             )
+        if collapse_stage:
+            name, pct = collapse_stage
+            lines += [
+                "",
+                f"\* The unit changes at **{name}**: the several daily records "
+                f"of one posting collapse into one. Nothing is rejected there, "
+                f"so {pct}% is that collapse and not a survival rate.",
+            ]
 
     lines += [
         "",
