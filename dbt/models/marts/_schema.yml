@@ -104,3 +104,58 @@ models:
         description: requires_german as a share of postings.
       - name: pct_english_without_german
         description: english_without_german as a share of postings.
+
+  - name: mart_pipeline_funnel
+    description: >
+      How many rows survive each stage, in the order int_postings applies
+      them. The README publishes the last stage; this says what the other
+      seven cost. Without it, a total that moves overnight could be fewer
+      postings ingested, more filtered out of scope, more aged past the
+      freshness window, more collapsed by deduplication, or simply fewer
+      descriptions fetched - five different problems that look identical from
+      the outside. Every stage but the first counts int_postings_scored, the
+      model int_postings filters, so the funnel cannot disagree with the
+      number it explains.
+    columns:
+      - name: stage_order
+        description: Position in the pipeline. The order the model applies, not a ranking.
+        tests: [not_null]
+      - name: stage
+        description: >
+          What this stage keeps. Named for the surviving set rather than for
+          the filter, so the column reads as a count of something real.
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              values:
+                - rows_read
+                - distinct_postings
+                - title_in_scope
+                - in_germany
+                - latest_snapshot
+                - still_advertised
+                - deduplicated
+                - with_description
+      - name: postings
+        description: >
+          Rows surviving this stage. Stage 1 is read from the loader's
+          manifest, because the grain collapses duplicates in load/rows.py
+          before anything reaches the warehouse and no model can count what
+          was read. It is a floor rather than an exact count while any run
+          loaded before that field existed is still inside the retention
+          window: those runs fall back to what survived the grain, which
+          understates them rather than inventing a number.
+        tests: [not_null, non_negative]
+      - name: pct_of_previous
+        description: >
+          What this stage kept of the stage above it. Answers "what did this
+          filter cost".
+      - name: pct_of_first
+        description: >
+          What this stage kept of the rows originally read. Answers "what is
+          left of what we started with". Kept separate from pct_of_previous
+          because a reader who takes one for the other reads a 94% stage as a
+          94% survival rate.
+      - name: dropped
+        description: Rows this stage removed. Null on the first stage, which removes nothing.
