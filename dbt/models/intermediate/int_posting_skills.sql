@@ -10,7 +10,7 @@ with postings as (
     select posting_id, source, description
     from {{ ref('int_postings') }}
     where description is not null
-      and length(description) > 200   -- stubs carry no requirements
+      and length(description) > {{ var('description_min_chars') }}   -- stubs carry no requirements
 
 ),
 

@@ -17,7 +17,8 @@ with scoped as (
 
     select *
     from {{ ref('int_postings') }}
-    where description is not null and length(description) > 200
+    where description is not null
+      and length(description) > {{ var('description_min_chars') }}
 
 ),
 

@@ -14,6 +14,11 @@ clean-targets: ["target", "dbt_packages"]
 # storage bound, this is a definition. See int_postings and CLAUDE.md.
 vars:
   posting_freshness_days: 7
+  # Shortest description worth reading requirements from. Stub listings that
+  # only link elsewhere would otherwise count as postings with no tools named,
+  # understating every rate. Read by int_postings_scored.has_description and by
+  # the denominator mart_skill_frequency publishes against.
+  description_min_chars: 200
 
 models:
   de_jobs:
