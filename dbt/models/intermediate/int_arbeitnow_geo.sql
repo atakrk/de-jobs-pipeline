@@ -10,6 +10,11 @@
 --
 -- Unknown stays unknown rather than being assumed German. Assuming is what
 -- put London and Paris inside figures reported as the German market.
+--
+-- Grain is (posting_id, run_date), the same as the staging model it reads.
+-- A board posting reappears every morning it is still listed, and its location
+-- text can change between them, so resolving per run rather than per posting
+-- is both correct and the only grain that joins cleanly downstream.
 
 with german_places as (
 
@@ -21,6 +26,7 @@ locations as (
 
     select
         posting_id,
+        run_date,
         city                              as raw_location,
         {{ norm("coalesce(city, '')") }}  as loc_norm
     from {{ ref('stg_arbeitnow__postings') }}
@@ -52,6 +58,7 @@ matched as (
 
 select
     posting_id,
+    run_date,
     raw_location,
     has_foreign_marker,
     matches_german_place,

@@ -27,8 +27,19 @@ models:
       as the German market.
     columns:
       - name: posting_id
-        description: The board's slug.
-        tests: [not_null, unique]
+        description: >
+          The board's slug. Not unique on its own: a posting still listed
+          tomorrow is read again tomorrow, and this model keeps one row per
+          run so the location text of that run is the one resolved.
+        tests:
+          - not_null
+          - unique_together:
+              others: [run_date]
+      - name: run_date
+        description: >
+          The ingest run this verdict was derived from. Part of the grain, and
+          part of the join key downstream - joining on posting_id alone
+          multiplied every posting by the number of days it had been listed.
       - name: raw_location
         description: The original free-text location, kept so a verdict can be checked.
       - name: has_foreign_marker

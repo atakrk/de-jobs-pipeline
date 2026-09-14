@@ -106,7 +106,7 @@ arbeitnow as (
         cast(null as boolean)                  as is_temp_agency
 
     from an_postings p
-    left join an_geo g using (posting_id)
+    left join an_geo g using (posting_id, run_date)
 
 ),
 
