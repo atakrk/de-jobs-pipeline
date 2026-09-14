@@ -21,7 +21,8 @@ markup, between the same kind of marker, because the tooltips read from it.
 site/template.html is the source and the only page file edited by hand. What
 this writes into docs/ is a build artifact, and anything typed into one is lost
 on the next run: index.html, sitemap.xml, llms.txt and og.png. robots.txt,
-favicon.svg and CNAME are hand-written, and nothing here touches them.
+favicon.svg and CNAME are hand-written, favicon.ico is drawn by
+site/make_favicon.py, and nothing here touches any of them.
 
 Run it in the same job that produced the snapshots, never on its own
 schedule: a site rebuilt separately is a site that can quietly publish
@@ -36,11 +37,11 @@ import argparse
 import csv
 import json
 import re
-import shutil
-import struct
 from datetime import date
 from html import escape
 from pathlib import Path
+
+from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -52,8 +53,9 @@ OUTPUT = DOCS / "index.html"
 SITEMAP = DOCS / "sitemap.xml"
 LLMS = DOCS / "llms.txt"
 OG_IMAGE = DOCS / "og.png"
-# The chart the same run drew. Copied next to the page rather than linked from
-# the repository, so a link preview does not depend on a second host.
+# The chart the same run drew. Published next to the page as og.png rather than
+# linked from the repository, so a link preview does not depend on a second
+# host; see og_card for why it is not copied as drawn.
 CHART = ROOT / "analysis" / "charts" / "skill_frequency.png"
 
 SITE_URL = "https://dedata.dev/"
@@ -767,12 +769,28 @@ def llms_txt(data: dict) -> str:
     return "\n".join(lines)
 
 
-def png_size(path: Path) -> tuple[int, int]:
-    with path.open("rb") as handle:
-        header = handle.read(24)
-    if header[:8] != b"\x89PNG\r\n\x1a\n":
-        raise SystemExit(f"{path} is not a PNG")
-    return struct.unpack(">II", header[16:24])
+# The shape large link previews are cut to.
+OG_SIZE = (1200, 630)
+
+
+def og_card(chart: Path, out: Path) -> None:
+    """The chart, fitted whole inside a link-preview card.
+
+    Copied as drawn it is 1620x1152, and a large preview crops that to about
+    2:1 around its middle -- which takes the chart's title and its top bars,
+    the part that says what it is. Fitted inside the card on its own background
+    colour, all of it survives.
+    """
+    width, height = OG_SIZE
+    margin = 24
+    with Image.open(chart) as source:
+        image = source.convert("RGB")
+    scale = min((width - 2 * margin) / image.width, (height - 2 * margin) / image.height)
+    fitted = image.resize((round(image.width * scale), round(image.height * scale)),
+                          Image.Resampling.LANCZOS)
+    card = Image.new("RGB", OG_SIZE, image.getpixel((0, 0)))
+    card.paste(fitted, ((width - fitted.width) // 2, (height - fitted.height) // 2))
+    card.save(out, optimize=True)
 
 
 def main() -> None:
@@ -789,13 +807,13 @@ def main() -> None:
         raise SystemExit(f"no chart at {CHART}: run analysis/make_charts.py first")
 
     data = compile_data(args.snapshots, read_freshness_days(args.project))
-    page = render_page(data, png_size(CHART))
+    page = render_page(data, OG_SIZE)
 
     DOCS.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(page, encoding="utf-8")
     SITEMAP.write_text(sitemap(data), encoding="utf-8")
     LLMS.write_text(llms_txt(data), encoding="utf-8")
-    shutil.copyfile(CHART, OG_IMAGE)
+    og_card(CHART, OG_IMAGE)
 
     written = ", ".join(p.name for p in (OUTPUT, SITEMAP, LLMS, OG_IMAGE))
     print(f"docs/{{{written}}}: {data['days_tracked']} day(s), "
