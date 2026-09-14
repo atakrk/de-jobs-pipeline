@@ -86,6 +86,22 @@ jobs:
           cp target/index.html target/manifest.json target/catalog.json ../docs/models/
           touch ../docs/.nojekyll
 
+      # dbt's page is titled "dbt Docs", weighs 1.8 MB, and is half of what a
+      # crawler finds on the domain -- a maintainer's tool competing with the
+      # dashboard for the same searches. Its canonical, "/overview/", was a
+      # relative path that only meant something at dbt's own URL, and here
+      # resolves to a 404. So the canonical goes and a noindex goes in, and the
+      # step fails rather than publishing a page that quietly kept neither.
+      # GNU sed: the runner is Ubuntu.
+      - name: Keep the model docs out of search results
+        run: |
+          page=docs/models/index.html
+          sed -i '0,/<link rel="canonical"[^>]*>/s///' "$page"
+          sed -i '0,/<head>/s//<head><meta name="robots" content="noindex">/' "$page"
+          grep -q '<meta name="robots" content="noindex">' "$page"
+          # Not `! grep`: bash -e does not stop on a negated command.
+          if grep -q '<link rel="canonical"' "$page"; then exit 1; fi
+
       - name: Commit docs
         run: |
           git config user.name "github-actions[bot]"

@@ -1,0 +1,112 @@
+# DEdata
+
+> What data engineering job postings in Germany ask for: tools, German-language requirements, cities and advertised salaries. Counted every morning from two public job APIs. Open source; every figure traces to a committed daily snapshot.
+
+Figures from the run of 14 September 2026, tracked daily since 11 September 2026. Every percentage is a share of the 683 currently advertised postings that carried a description to read.
+
+## Tools named in postings
+
+A posting counts once per tool, however often it names it.
+
+- ETL / ELT (concept): 51.1% (349 of 683)
+- Python (language): 49.3% (337 of 683)
+- SQL (language): 47.7% (326 of 683)
+- Azure (cloud): 27.4% (187 of 683)
+- AWS (cloud): 20.1% (137 of 683)
+- Databricks (platform): 16.4% (112 of 683)
+- Data Lake / Lakehouse (concept): 16.0% (109 of 683)
+- Power BI (bi): 16.0% (109 of 683)
+- Spark (processing): 14.9% (102 of 683)
+- Data Warehouse (concept): 14.1% (96 of 683)
+- Snowflake (warehouse): 12.7% (87 of 683)
+- Google Cloud (cloud): 12.4% (85 of 683)
+- SAP (platform): 12.4% (85 of 683)
+- dbt (transformation): 10.7% (73 of 683)
+- Kubernetes (platform): 9.8% (67 of 683)
+- Docker (platform): 8.6% (59 of 683)
+- Airflow (orchestration): 8.5% (58 of 683)
+- Java (language): 7.6% (52 of 683)
+- Terraform (platform): 7.2% (49 of 683)
+- Kafka (streaming): 6.7% (46 of 683)
+- Microsoft Fabric (platform): 6.3% (43 of 683)
+- PostgreSQL (database): 5.6% (38 of 683)
+- Azure Data Factory (orchestration): 5.4% (37 of 683)
+- Tableau (bi): 5.0% (34 of 683)
+- BigQuery (warehouse): 4.5% (31 of 683)
+- SQL Server (database): 3.7% (25 of 683)
+- Dagster (orchestration): 3.2% (22 of 683)
+- Scala (language): 2.9% (20 of 683)
+- Oracle (database): 2.6% (18 of 683)
+- Azure Synapse (warehouse): 2.5% (17 of 683)
+- Flink (streaming): 1.8% (12 of 683)
+- Looker (bi): 1.6% (11 of 683)
+- MongoDB (database): 1.2% (8 of 683)
+- Redshift (warehouse): 0.6% (4 of 683)
+
+## German-language requirement
+
+Only an explicit competency phrase counts as requiring German, and most German postings are written in German regardless, so the German shares are floors, not ceilings.
+
+- All postings: 38.5% (263 of 683) state a German requirement; 34.3% (234 of 683) mention English without requiring German
+- Bundesagentur für Arbeit: 41.1% (256 of 623) state a German requirement; 31.1% (194 of 623) mention English without requiring German
+- Arbeitnow: 11.7% (7 of 60) state a German requirement; 66.7% (40 of 60) mention English without requiring German
+
+## Median advertised salary by tool
+
+Advertised, not paid. Only a minority of postings state a salary, tools with fewer than three that do are left out, and n is the number of postings each median is taken over.
+
+- BigQuery: €70,000 to €85,000 (n=3)
+- Databricks: €70,000 to €85,000 (n=5)
+- Docker: €70,000 to €85,000 (n=4)
+- Kafka: €70,000 to €85,000 (n=7)
+- Kubernetes: €70,000 to €85,000 (n=7)
+- Terraform: €70,000 to €85,000 (n=3)
+- Data Warehouse: €70,000 to €85,000 (n=10)
+- Snowflake: €66,000 to €80,000 (n=11)
+- Airflow: €65,000 to €85,000 (n=7)
+- Azure: €65,000 to €85,000 (n=20)
+- ETL / ELT: €65,000 to €80,000 (n=30)
+- Microsoft Fabric: €65,000 to €85,000 (n=5)
+- Python: €65,000 to €80,000 (n=25)
+- SAP: €65,000 to €80,000 (n=7)
+- Spark: €65,000 to €80,000 (n=12)
+- SQL: €65,000 to €80,000 (n=25)
+- Java: €64,000 to €82,500 (n=6)
+- AWS: €62,500 to €82,500 (n=12)
+- dbt: €62,500 to €80,000 (n=10)
+- Google Cloud: €62,500 to €82,500 (n=6)
+- Data Lake / Lakehouse: €62,500 to €80,000 (n=12)
+- PostgreSQL: €60,000 to €85,000 (n=3)
+- SQL Server: €60,000 to €82,000 (n=8)
+- Power BI: €55,000 to €78,000 (n=11)
+- Tableau: €50,000 to €78,000 (n=5)
+
+## Cities with the most postings
+
+- Berlin: 56 postings
+- München: 45 postings
+- Frankfurt am Main: 38 postings
+- Hamburg: 35 postings
+- Köln: 27 postings
+- Stuttgart: 25 postings
+- Düsseldorf: 19 postings
+- Unknown: 17 postings
+- Dresden: 16 postings
+- Nürnberg, Mittelfranken: 16 postings
+- Berlin: 13 postings
+- Donauwörth: 13 postings
+
+## Method
+
+- Sources: the Bundesagentur für Arbeit's public job API and the Arbeitnow board. Nothing is scraped.
+- Scope: data engineering, analytics engineering, BI and data analyst roles, entered only where Germany is established by the source or resolved from the location text. Unknown stays out.
+- Deduplication: postings are collapsed on employer and title, which merges an employer's genuinely different roles under one title.
+- Freshness: a posting counts while the sources are still listing it, for 7 days after it was last seen.
+- Each run is a fresh sample of that morning. Read a one-day change as noise.
+
+## Links
+
+- [Dashboard](https://dedata.dev/)
+- [Pipeline source](https://github.com/atakrk/de-jobs-pipeline)
+- [Daily snapshots as CSV](https://github.com/atakrk/de-jobs-pipeline/tree/main/data/snapshots)
+- [Model documentation](https://dedata.dev/models/)

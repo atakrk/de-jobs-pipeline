@@ -98,7 +98,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/snapshots analysis/charts README.md docs/index.html
+          # The site's generated files by name, never docs/ whole: robots.txt,
+          # favicon.svg, CNAME and docs/models are not this job's to stage.
+          git add data/snapshots analysis/charts README.md \
+            docs/index.html docs/sitemap.xml docs/llms.txt docs/og.png
           if git diff --staged --quiet; then
             echo "nothing changed"
             exit 0
