@@ -64,6 +64,13 @@ def build_block(cur, marts: str, intermediate: str) -> str:
     """)
     clouds = cur.fetchall()
 
+    cur.execute(f"""
+        select stage, postings, pct_of_previous, pct_of_first
+        from {marts}.mart_pipeline_funnel
+        order by stage_order
+    """)
+    funnel = cur.fetchall()
+
     neither = with_text - n_german - n_english
 
     lines = [
@@ -99,6 +106,27 @@ def build_block(cur, marts: str, intermediate: str) -> str:
             "",
             f"{lead[1]} appears **{ratio:.1f}×** as often as {second[1]}.",
         ]
+
+    if funnel:
+        lines += [
+            "",
+            "### What the published number is a share of",
+            "",
+            # Generated, never typed. A funnel written by hand is a snapshot of
+            # the day someone wrote it, and this whole table exists because a
+            # number with no stages behind it cannot be debugged.
+            "Stages in the order the pipeline applies them. The last row is the "
+            "denominator above.",
+            "",
+            "| stage | postings | of previous | of rows read |",
+            "| --- | ---: | ---: | ---: |",
+        ]
+        for stage, postings, of_previous, of_first in funnel:
+            previous = "—" if of_previous is None else f"{of_previous}%"
+            first = "—" if of_first is None else f"{of_first}%"
+            lines.append(
+                f"| {stage.replace('_', ' ')} | {postings:,} | {previous} | {first} |"
+            )
 
     lines += [
         "",

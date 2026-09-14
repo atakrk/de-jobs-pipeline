@@ -7,12 +7,18 @@
 --
 --   psql -U jobs -d jobs -f analysis/dedup_audit.sql
 --
--- Scope is reconstructed once, into a temp view, rather than pasted into every
--- section. The previous version repeated it four times and all four had drifted
--- from the model: they still admitted `country is null`, which the model
--- stopped doing when London and Paris turned up inside the German figures.
--- Country for the second source is read from int_arbeitnow_geo rather than
--- re-derived, for the same reason.
+-- Section 1 selects mart_pipeline_funnel rather than recomputing it. The
+-- sections after it still reconstruct scope, because they ask questions the
+-- marts do not answer -- but scope is built once, into a temp view, rather
+-- than pasted into each. The version before this one repeated it four times
+-- and all four had drifted from the model: still admitting `country is null`
+-- after the model stopped, still joining details on run_date after the model
+-- stopped. An audit that re-derives what it audits eventually audits
+-- something else.
+--
+-- The remaining reconstruction is the reason int_postings_scored exists. If
+-- these sections start mattering enough to publish, they should move onto it
+-- too.
 
 \set ON_ERROR_STOP on
 
@@ -53,14 +59,17 @@ where run_rank = 1
 
 \echo ''
 \echo '=== 1. FUNNEL ==='
+\echo '(read from mart_pipeline_funnel, not recomputed -- see the header)'
 
 select
-    (select count(*) from analytics_staging.stg_arbeitsagentur__postings)
-  + (select count(*) from analytics_staging.stg_arbeitnow__postings)   as raw_rows_all_runs,
-    (select count(*) from audit_scope)                                 as after_scope_filter,
-    (select count(*) from analytics_intermediate.int_postings)         as after_dedup,
-    (select count(*) from audit_scope)
-      - (select count(*) from analytics_intermediate.int_postings)     as lost_to_dedup;
+    stage_order,
+    stage,
+    postings,
+    pct_of_previous,
+    pct_of_first,
+    dropped
+from analytics_marts.mart_pipeline_funnel
+order by stage_order;
 
 \echo ''
 \echo '=== 2. WHAT DEDUP MERGED ==='

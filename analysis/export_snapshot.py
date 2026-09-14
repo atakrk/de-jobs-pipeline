@@ -36,6 +36,7 @@ MARTS = [
     "mart_language_requirement",
     "mart_city_stats",
     "mart_salary_by_skill",
+    "mart_pipeline_funnel",
 ]
 
 

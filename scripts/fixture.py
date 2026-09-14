@@ -58,23 +58,26 @@ from warehouse import required_env  # noqa: E402
 
 RUN = "2026-09-12"
 
-RAW_TABLES = ["arbeitsagentur_postings", "arbeitsagentur_details",
-              "arbeitnow_postings"]
+RAW_TABLES = ["ingest_runs", "arbeitsagentur_postings",
+              "arbeitsagentur_details", "arbeitnow_postings"]
 
 # (layer, table). The schema is <prefix>_<layer>, and the prefix moves with
 # DATABRICKS_SCHEMA so a fixture build can be sent away from production.
 MODELS = [
+    ("staging", "stg_ingest_runs"),
     ("staging", "stg_arbeitsagentur__postings"),
     ("staging", "stg_arbeitsagentur__details"),
     ("staging", "stg_arbeitnow__postings"),
     ("intermediate", "int_german_cities"),
     ("intermediate", "int_arbeitnow_geo"),
+    ("intermediate", "int_postings_scored"),
     ("intermediate", "int_postings"),
     ("intermediate", "int_posting_skills"),
     ("marts", "mart_skill_frequency"),
     ("marts", "mart_salary_by_skill"),
     ("marts", "mart_city_stats"),
     ("marts", "mart_language_requirement"),
+    ("marts", "mart_pipeline_funnel"),
 ]
 
 DESC_DE = (
@@ -141,6 +144,18 @@ AG_DETAILS = [
              "istArbeitnehmerUeberlassung": True}),
     ("ag3", {"stellenangebotsBeschreibung": DESC_STUB}),
     ("ag4", {"stellenangebotsBeschreibung": DESC_EN}),
+]
+
+# One manifest per (source, run_date), as the loaders write them. rows_read and
+# duplicates_collapsed are the loader's own counts -- the grain is applied in
+# load/rows.py, before the insert -- and they are the funnel's first stage.
+# Deliberately larger than the rows below, so the drop from stage 1 to stage 2
+# is a number the diff would notice if the grain stopped collapsing anything.
+INGEST_RUNS = [
+    ("arbeitsagentur", {"source": "arbeitsagentur", "results_key": "ergebnisliste",
+                        "rows_read": 6, "duplicates_collapsed": 1}),
+    ("arbeitnow", {"source": "arbeitnow", "results_key": "data",
+                   "rows_read": 5, "duplicates_collapsed": 1}),
 ]
 
 AN_POSTINGS = [
@@ -235,6 +250,9 @@ def load(target: str) -> None:
             return f"({', '.join(names)}) values ({', '.join(values)})"
 
         rows = [
+            (f"{raw}.ingest_runs",
+             clause(["source", "run_date", "manifest"]),
+             [(name, RUN, json.dumps(payload)) for name, payload in INGEST_RUNS]),
             (f"{raw}.arbeitsagentur_postings",
              clause(["source_id", "run_date", "search_term", "payload"]),
              [(i, RUN, term, json.dumps(payload)) for i, term, payload in AG_POSTINGS]),
