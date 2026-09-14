@@ -65,7 +65,7 @@ def write_run(cur, run) -> None:
             "VALUES (%s, %s, %s) "
             "ON CONFLICT (source, run_date) DO UPDATE "
             "SET manifest = EXCLUDED.manifest, loaded_at = now()",
-            (run.source, run.run_date, Jsonb(run.manifest)),
+            (run.source, run.run_date, Jsonb(run.load_manifest())),
         )
 
     upsert(cur, "raw.arbeitsagentur_postings",

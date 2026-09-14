@@ -211,7 +211,7 @@ def write_run(cur, catalog: str, run) -> None:
     if run.manifest is not None:
         replace_run(
             cur, f"{raw}.ingest_runs", ["source", "run_date", "manifest"],
-            [(run.source, run.run_date, as_json(run.manifest))],
+            [(run.source, run.run_date, as_json(run.load_manifest()))],
             run_date=run.run_date, source_filter=run.source,
         )
 

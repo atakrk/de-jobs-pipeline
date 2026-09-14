@@ -29,10 +29,37 @@ class RunRows:
     ag_details: list[tuple] = field(default_factory=list)    # (id, run_date, payload)
     an_postings: list[tuple] = field(default_factory=list)   # (id, run_date, payload)
     duplicates: int = 0                                      # rows collapsed by the grain
+    postings_read: int = 0                                   # posting rows before that
 
     @property
     def posting_count(self) -> int:
         return len(self.ag_postings) + len(self.an_postings)
+
+    @property
+    def posting_duplicates(self) -> int:
+        """Posting rows the grain collapsed.
+
+        Reported separately from `duplicates`, which also counts details. The
+        funnel measures postings, and a stage that silently included detail
+        rows would show a drop that is not a drop.
+        """
+        return self.postings_read - self.posting_count
+
+    def load_manifest(self) -> dict:
+        """The run's own manifest, plus what only the loader can know.
+
+        The ingest manifest records what the API answered. How many of those
+        rows were the same posting arriving again is not visible until the
+        grain is applied, and the grain is applied here -- so the first stage
+        of mart_pipeline_funnel cannot be recovered from the warehouse without
+        this. It is written into raw.ingest_runs.manifest, which is therefore
+        the ingest manifest augmented rather than a copy of the file on disk.
+        """
+        return {
+            **(self.manifest or {}),
+            "rows_read": self.postings_read,
+            "duplicates_collapsed": self.posting_duplicates,
+        }
 
     @property
     def detail_count(self) -> int:
@@ -104,7 +131,8 @@ def read_run(source: str, run_dir: Path) -> RunRows:
             blob = json.loads(detail_file.read_text("utf-8"))
             rows.ag_details.append((blob["id"], run_date, blob["payload"]))
 
-    before = len(rows.ag_postings) + len(rows.ag_details) + len(rows.an_postings)
+    rows.postings_read = len(rows.ag_postings) + len(rows.an_postings)
+    before = rows.postings_read + len(rows.ag_details)
     rows.ag_postings = dedupe(rows.ag_postings)
     rows.ag_details = dedupe(rows.ag_details)
     rows.an_postings = dedupe(rows.an_postings)
