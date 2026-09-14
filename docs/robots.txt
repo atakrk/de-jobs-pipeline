@@ -1,0 +1,11 @@
+# Hand-written. build_site.py does not touch this file.
+#
+# /models/ is not disallowed here on purpose. A disallowed URL can still be
+# indexed from a link to it -- the README links it -- because the crawler never
+# fetches the page and so never sees that it asks not to be. The docs job writes
+# a noindex into that page instead, which only works if it can be crawled.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://dedata.dev/sitemap.xml
