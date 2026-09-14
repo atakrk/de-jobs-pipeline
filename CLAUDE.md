@@ -13,6 +13,8 @@ load/       raw JSON -> warehouse. No reshaping here.
               rows.py reads a run; one writer per platform.
 dbt/        staging -> intermediate -> marts
               macros/dialect.sql holds every per-platform difference
+              int_postings_scored keeps every row and why it survives;
+              int_postings is that model filtered
 analysis/   charts, snapshot export, and audits kept next to what they audit
 ```
 
@@ -126,12 +128,21 @@ and dumps every model, and the `parity` workflow diffs the two on any change
 to `dbt/models/**` or `dbt/macros/**`. It builds into `fixture_raw` and
 `fixture_*` so it cannot reach the tables holding real runs.
 
-`scripts/compare_targets.py` does the same on the real marts and stays a local
-check — production keeps thirty days on Databricks while a CI Postgres holds
-one run, so in CI the two would be compared on different inputs. Run it
-locally whenever a dialect macro changes: the two failures that mattered were
-a grain nobody had written down and two real postings that tie, and a fixture
-can contain neither.
+`scripts/compare_targets.py` does the same on the real marts, and is only
+meaningful when both engines hold the same runs. They no longer do by default:
+Databricks accumulates what the schedule ingests, and those raw files never
+reach a laptop. Load the same run directories into both first, or read its
+output as a statement about the data rather than about the engines — the two
+failures that mattered were a grain nobody had written down and two real
+postings that tie, and a fixture can contain neither, so it is still worth
+setting up deliberately when a dialect macro changes.
+
+**The funnel is the model, counted.** `mart_pipeline_funnel` reports every
+stage from rows read to the published denominator, and every stage after the
+first counts `int_postings_scored` — the model `int_postings` filters. Do not
+re-derive a filter to count it. Four hand-copied reconstructions of the scope
+rules in `analysis/dedup_audit.sql` had all gone stale before anyone looked,
+and that file was never published to anyone.
 
 **Do not disable TLS verification.** Community docs for the federal API suggest
 it. The handshake works fine.
