@@ -1,0 +1,89 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,56,15,3,60000
+München,BAYERN,45,4,4,60000
+Frankfurt am Main,HESSEN,38,7,2,64500
+Hamburg,HAMBURG,35,11,2,80000
+Köln,NORDRHEIN_WESTFALEN,27,4,4,54000
+Stuttgart,BADEN_WUERTTEMBERG,25,3,1,75000
+Düsseldorf,NORDRHEIN_WESTFALEN,19,1,3,70000
+Unknown,,17,3,1,70000
+Dresden,SACHSEN,16,2,1,75000
+"Nürnberg, Mittelfranken",BAYERN,16,3,2,55000
+Berlin,,13,0,0,
+Donauwörth,BAYERN,13,0,4,60500
+Erlangen,BAYERN,13,0,3,70000
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,12,2,0,
+Leipzig,SACHSEN,10,1,0,
+Bonn,NORDRHEIN_WESTFALEN,9,2,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,9,1,4,65000
+Duisburg,NORDRHEIN_WESTFALEN,8,0,2,62500
+Mannheim,BADEN_WUERTTEMBERG,8,1,2,65000
+München,,7,0,0,
+Hamburg,,6,0,0,
+Munich,,6,0,0,
+"Ulm, Donau",BADEN_WUERTTEMBERG,6,1,1,70000
+Burgwedel,NIEDERSACHSEN,5,2,0,
+"Eschborn, Taunus",HESSEN,5,0,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,5,3,0,
+Würzburg,BAYERN,5,0,0,
+"Bad Grönenbach, Allgäu",BAYERN,4,0,0,
+Bremen,BREMEN,4,0,0,
+Darmstadt,HESSEN,4,0,0,
+Hannover,NIEDERSACHSEN,4,2,0,
+Oberkochen,BADEN_WUERTTEMBERG,4,0,2,70000
+Osnabrück,NIEDERSACHSEN,4,1,2,59500
+"Augsburg, Bayern",BAYERN,3,0,1,
+Bielefeld,NORDRHEIN_WESTFALEN,3,0,1,45000
+"Chemnitz, Sachsen",SACHSEN,3,1,0,
+Dortmund,NORDRHEIN_WESTFALEN,3,0,0,
+Göttingen,NIEDERSACHSEN,3,0,0,
+"Hemmingen, Württemberg",BADEN_WUERTTEMBERG,3,1,0,
+"Kassel, Hessen",HESSEN,3,1,0,
+Köln,,3,0,0,
+Laupheim,BADEN_WUERTTEMBERG,3,0,1,70000
+Leverkusen,NORDRHEIN_WESTFALEN,3,1,0,
+Manching,BAYERN,3,0,0,
+Oldenburg (Oldb),NIEDERSACHSEN,3,1,1,65000
+Sindelfingen,BADEN_WUERTTEMBERG,3,0,0,
+"Aalen, Württemberg",BADEN_WUERTTEMBERG,2,0,1,55000
+Bad Homburg vor der Höhe,HESSEN,2,0,0,
+"Berlin, Berlin",,2,0,0,
+Böblingen,BADEN_WUERTTEMBERG,2,0,0,
+Coburg,BAYERN,2,1,0,
+Coesfeld,NORDRHEIN_WESTFALEN,2,1,0,
+"Düsseldorf, North Rhine-Westphalia",,2,0,0,
+Erfurt,THUERINGEN,2,2,0,
+Espelkamp,NORDRHEIN_WESTFALEN,2,1,0,
+"Essenbach, Niederbayern",BAYERN,2,0,0,
+Garching bei München,BAYERN,2,1,0,
+Gersthofen,BAYERN,2,0,0,
+Gescher,NORDRHEIN_WESTFALEN,2,2,0,
+"Gießen, Lahn",HESSEN,2,1,0,
+Herzogenaurach,BAYERN,2,0,0,
+Immenstaad am Bodensee,BADEN_WUERTTEMBERG,2,0,0,
+Kiel,SCHLESWIG_HOLSTEIN,2,1,1,35000
+Krefeld,NORDRHEIN_WESTFALEN,2,0,0,
+Leinfelden-Echterdingen,BADEN_WUERTTEMBERG,2,0,1,60000
+Lemwerder,NIEDERSACHSEN,2,0,1,70000
+Ludwigsfelde,BRANDENBURG,2,0,1,30000
+Mannheim,,2,0,0,
+Massen bei Finsterwalde,BRANDENBURG,2,0,0,
+Mülheim an der Ruhr,NORDRHEIN_WESTFALEN,2,0,0,
+Neuss,NORDRHEIN_WESTFALEN,2,1,0,
+Nördlingen,BAYERN,2,0,0,
+Paderborn,NORDRHEIN_WESTFALEN,2,0,0,
+Pforzheim,BADEN_WUERTTEMBERG,2,2,0,
+Potsdam,BRANDENBURG,2,0,0,
+Pullach im Isartal,BAYERN,2,0,0,
+Ratingen,NORDRHEIN_WESTFALEN,2,1,1,66000
+Raunheim,HESSEN,2,1,0,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+"Sassenberg, Westfalen",NORDRHEIN_WESTFALEN,2,2,0,
+"Sinsheim, Elsenz",BADEN_WUERTTEMBERG,2,0,1,45000
+Stuttgart,,2,0,0,
+Unknown,BADEN_WUERTTEMBERG,2,1,0,
+Unknown,NORDRHEIN_WESTFALEN,2,1,0,
+Unterföhring,BAYERN,2,0,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,1,50000
+Wiesbaden,HESSEN,2,0,0,
+Wolfsburg,NIEDERSACHSEN,2,2,0,
