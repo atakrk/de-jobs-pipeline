@@ -8,6 +8,10 @@ name: docs
 #
 # So this runs on changes to the dbt project instead. It still needs a
 # database, because `dbt docs generate` reads column types from the warehouse.
+#
+# It publishes under docs/models/, not docs/. The dashboard owns docs/index.html
+# now, and this job stages only the paths it produces -- `git add docs` would
+# sweep in a page it did not build and cannot rebuild.
 
 on:
   push:
@@ -78,15 +82,15 @@ jobs:
         working-directory: dbt
         run: |
           dbt docs generate --profiles-dir .
-          mkdir -p ../docs
-          cp target/index.html target/manifest.json target/catalog.json ../docs/
+          mkdir -p ../docs/models
+          cp target/index.html target/manifest.json target/catalog.json ../docs/models/
           touch ../docs/.nojekyll
 
       - name: Commit docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs
+          git add docs/models docs/.nojekyll
           if git diff --staged --quiet; then
             echo "docs unchanged"
             exit 0

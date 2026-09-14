@@ -84,17 +84,21 @@ jobs:
           dbt seed --profiles-dir . --target databricks
           dbt build --profiles-dir . --target databricks
 
-      - name: Export snapshot, charts and README figures
+      # The site is rebuilt here, in the job that produced the data, and has no
+      # schedule of its own. A separately scheduled site is one that can
+      # publish yesterday's numbers while looking current.
+      - name: Export snapshot, charts, README figures and the site
         run: |
           python analysis/export_snapshot.py
           python analysis/make_charts.py
           python analysis/update_readme.py
+          python site/build_site.py
 
       - name: Commit results
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/snapshots analysis/charts README.md
+          git add data/snapshots analysis/charts README.md docs/index.html
           if git diff --staged --quiet; then
             echo "nothing changed"
             exit 0
