@@ -26,11 +26,18 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 
 REQUEST_DELAY_SECONDS = float(os.getenv("REQUEST_DELAY_SECONDS", "0.5"))
 MAX_PAGES = int(os.getenv("MAX_PAGES", "40"))
-SEARCH_TERMS = [
-    term.strip()
-    for term in os.getenv("SEARCH_TERMS", "data engineer").split(",")
-    if term.strip()
-]
+# The federal search terms, in code rather than in the environment. They were
+# an environment variable with a default, and the laptop's .env named three
+# terms while the daily job, which sets nothing, searched one. Both wrote to
+# the same warehouse. Postings only the laptop's wider search could find were
+# counted until they had gone unseen for seven days, then aged out together --
+# 202 of them in one morning, 22 of 25 sampled still advertised. The terms
+# decide what a posting's absence means, so there is one list, and a run that
+# wants another says so with --terms, which the manifest records.
+#
+# "data engineering" was one of the three. It matches over two thousand
+# postings, mostly other roles, and would not fit the page cap either.
+SEARCH_TERMS = ["data engineer", "analytics engineer"]
 
 logging.basicConfig(
     level=logging.INFO,

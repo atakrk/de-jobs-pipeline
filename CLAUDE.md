@@ -23,7 +23,7 @@ analysis/   charts, snapshot export, and audits kept next to what they audit
 ```bash
 source .venv/bin/activate          # Python 3.12
 docker compose up -d               # Postgres on localhost:5433
-python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 1660
+python ingest/arbeitsagentur.py --max-pages 20 --with-details --detail-limit 1200
 python ingest/arbeitnow.py --max-pages 5
 python load/load_raw.py
 cd dbt && dbt build --profiles-dir .

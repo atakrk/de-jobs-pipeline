@@ -70,9 +70,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # --max-pages has to exceed what the terms match, not merely approach it.
+      # A posting past the cap is not seen, and after posting_freshness_days
+      # unseen it is counted as withdrawn. "data engineer" matched 923 on
+      # 2026-09-18 -- ten pages of a hundred -- so ten would have started
+      # truncating within days. Twenty is headroom; the ingest warns and
+      # records it in the manifest if a term is cut off anyway.
+      #
+      # --detail-limit sits above the ~940 distinct postings the two terms
+      # return (1,160 rows; they overlap), so a new posting has its text the
+      # day it first appears.
       - name: Ingest
         run: |
-          python ingest/arbeitsagentur.py --max-pages 10 --with-details --detail-limit 900
+          python ingest/arbeitsagentur.py --max-pages 20 --with-details --detail-limit 1200
           python ingest/arbeitnow.py --max-pages 5
 
       - name: Load and prune

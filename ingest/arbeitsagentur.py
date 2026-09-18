@@ -105,8 +105,10 @@ def resolve_search_url(session: requests.Session) -> tuple[str, str] | None:
 
 def fetch_term(
     session: requests.Session, url: str, results_key: str, term: str, max_pages: int
-) -> list[dict]:
+) -> tuple[list[dict], int | None]:
+    """Every page for one term, and the total the API says the term matches."""
     pages: list[dict] = []
+    total = None
     for page in range(1, max_pages + 1):
         payload = get_json(
             session, url, params={"was": term, "page": page, "size": PAGE_SIZE}
@@ -124,7 +126,7 @@ def fetch_term(
             break
         time.sleep(REQUEST_DELAY_SECONDS)
 
-    return pages
+    return pages, (int(total) if total is not None else None)
 
 
 def posting_id(posting: dict) -> str | None:
@@ -251,9 +253,13 @@ def main() -> None:
 
     ids: list[str] = []
 
+    reported: dict[str, int | None] = {}
+    truncated: list[str] = []
+
     for term in args.terms:
         term_count = 0
-        for payload in fetch_term(session, search_url, results_key, term, args.max_pages):
+        pages, total = fetch_term(session, search_url, results_key, term, args.max_pages)
+        for payload in pages:
             file_index += 1
             write_json(directory / f"page_{file_index:04d}.json",
                        {"search_term": term, "results_key": results_key,
@@ -264,7 +270,20 @@ def main() -> None:
                 if found:
                     ids.append(found)
         per_term[term] = term_count
+        reported[term] = total
         postings_seen += term_count
+
+        # A search cut off by --max-pages is a sample, not the market. Every
+        # posting past the cap goes unseen, and once it has been unseen for
+        # the freshness window the models read it as withdrawn -- nothing
+        # downstream can tell the two apart, so it is said here and recorded.
+        # Only a cap that was actually reached counts: the API's total is an
+        # estimate, and a short last page means the list simply ended.
+        if total is not None and term_count < total and len(pages) == args.max_pages:
+            truncated.append(term)
+            log.warning("%s: fetched %d of %d reported; --max-pages %d cuts it off, "
+                        "and postings past the cap will age out as if withdrawn",
+                        term, term_count, total, args.max_pages)
 
     unique_ids = list(dict.fromkeys(ids))
 
@@ -304,6 +323,9 @@ def main() -> None:
         files_written=file_index,
         postings_seen=postings_seen,
         postings_per_term=per_term,
+        postings_reported_per_term=reported,
+        max_pages=args.max_pages,
+        truncated_terms=truncated,
         unique_ids=len(unique_ids),
         detail_path=detail_template,
         detail_base64=detail_base64,
