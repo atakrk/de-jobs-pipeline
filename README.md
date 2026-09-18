@@ -19,19 +19,19 @@ so any number here can be traced back to the run that produced it.
 
 <!-- FINDINGS:START -->
 
-*Postings still being advertised across the 7 daily runs from 2026-09-11 to 2026-09-17. A posting leaves these figures once the sources stop listing it, so this is what the market is asking for now rather than one morning's sample.*
+*Postings still being advertised across the 7 daily runs from 2026-09-12 to 2026-09-18. A posting leaves these figures once the sources stop listing it, so this is what the market is asking for now rather than one morning's sample.*
 
-**732 postings** after scope filtering, location validation and deduplication; **732** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 732.
+**574 postings** after scope filtering, location validation and deduplication; **574** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 574.
 
 ### Cloud platforms
 
 | | share of postings |
 | --- | --- |
-| Azure | 27.2% |
-| AWS | 19.9% |
-| Google Cloud | 12.3% |
+| Azure | 28.0% |
+| AWS | 21.1% |
+| Google Cloud | 11.1% |
 
-Azure appears **1.4×** as often as AWS.
+Azure appears **1.3×** as often as AWS.
 
 ### What the published number is a share of
 
@@ -39,22 +39,22 @@ Stages in the order the pipeline applies them. The last row is the denominator a
 
 | stage | unit | records | of previous | of rows read |
 | --- | --- | ---: | ---: | ---: |
-| rows read | posting-run | 13,625 | — | 100.0% |
-| distinct postings | posting-run | 12,532 | 92.0% | 92.0% |
-| title in scope | posting-run | 4,129 | 32.9% | 30.3% |
-| in germany | posting-run | 3,606 | 87.3% | 26.5% |
-| latest snapshot | posting | 814 | 22.6% \* | 6.0% |
-| still advertised | posting | 791 | 97.2% | 5.8% |
-| deduplicated | posting | 732 | 92.5% | 5.4% |
-| with description | posting | 732 | 100.0% | 5.4% |
+| rows read | posting-run | 15,337 | — | 100.0% |
+| distinct postings | posting-run | 14,243 | 92.9% | 92.9% |
+| title in scope | posting-run | 4,652 | 32.7% | 30.3% |
+| in germany | posting-run | 4,025 | 86.5% | 26.2% |
+| latest snapshot | posting | 841 | 20.9% \* | 5.5% |
+| still advertised | posting | 639 | 76.0% | 4.2% |
+| deduplicated | posting | 574 | 89.8% | 3.7% |
+| with description | posting | 574 | 100.0% | 3.7% |
 
-\* The unit changes at **latest snapshot**: the several daily records of one posting collapse into one. Nothing is rejected there, so 22.6% is that collapse and not a survival rate.
+\* The unit changes at **latest snapshot**: the several daily records of one posting collapse into one. Nothing is rejected there, so 20.9% is that collapse and not a survival rate.
 
 ### Language requirement
 
 | requires German | mentions English, no German requirement | neither stated |
 | --- | --- | --- |
-| **38.1%** | **35.5%** | **26.4%** |
+| **39.9%** | **35.4%** | **24.7%** |
 
 <!-- FINDINGS:END -->
 
