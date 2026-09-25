@@ -7,55 +7,33 @@
 --
 --   psql -U jobs -d jobs -f analysis/dedup_audit.sql
 --
--- Section 1 selects mart_pipeline_funnel rather than recomputing it. The
--- sections after it still reconstruct scope, because they ask questions the
--- marts do not answer -- but scope is built once, into a temp view, rather
--- than pasted into each. The version before this one repeated it four times
--- and all four had drifted from the model: still admitting `country is null`
--- after the model stopped, still joining details on run_date after the model
--- stopped. An audit that re-derives what it audits eventually audits
--- something else.
+-- Section 1 selects mart_pipeline_funnel rather than recomputing it, and the
+-- sections after it read int_postings_scored -- the model int_postings
+-- filters -- rather than rebuilding scope from staging. They ask questions
+-- the marts do not answer, but the answer to "which rows are in scope" is not
+-- one of them.
 --
--- The remaining reconstruction is the reason int_postings_scored exists. If
--- these sections start mattering enough to publish, they should move onto it
--- too.
+-- The version before this one repeated the scope rule four times and all four
+-- had drifted from the model: still admitting `country is null` after the
+-- model stopped, still joining details on run_date after the model stopped.
+-- Consolidating them into one temp view made that one reconstruction instead
+-- of four, which was better and still wrong -- the copy went stale again the
+-- morning the title pattern grew an exclusion list, and an audit of the scope
+-- filter that predates the scope filter is worse than no audit, because it
+-- reads as a second opinion. There is now no copy to go stale.
 
 \set ON_ERROR_STOP on
 
 create temp view audit_scope as
 
-with ag as (
-    select
-        posting_id,
-        'arbeitsagentur'::text as source,
-        run_date, title, employer, city, country
-    from analytics_staging.stg_arbeitsagentur__postings
-),
-
-an as (
-    select
-        p.posting_id,
-        'arbeitnow'::text as source,
-        p.run_date, p.title, p.employer, p.city,
-        g.resolved_country as country
-    from analytics_staging.stg_arbeitnow__postings p
-    left join analytics_intermediate.int_arbeitnow_geo g using (posting_id)
-),
-
-unioned as (select * from ag union all select * from an),
-
-latest as (
-    select *, row_number() over (
-        partition by source, posting_id order by run_date desc
-    ) as run_rank
-    from unioned
-)
-
-select *
-from latest
-where run_rank = 1
-  and title ~* '(data|analytics|bi\M|business intelligence|etl)'
-  and country = 'DEUTSCHLAND';
+-- Funnel stage 5, latest_snapshot: the newest run of every posting that is in
+-- scope and established as German. The flags come from the model; nothing
+-- here decides what in scope means.
+select posting_id, source, run_date, title, employer, city, country
+from analytics_intermediate.int_postings_scored
+where title_in_scope
+  and country_known
+  and run_rank = 1;
 
 \echo ''
 \echo '=== 1. FUNNEL ==='
