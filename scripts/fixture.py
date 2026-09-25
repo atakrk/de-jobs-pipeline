@@ -18,8 +18,9 @@ look like a realistic sample: nested and missing JSON keys, empty strings that
 must become null, epoch and boolean casts, a title that must match ("BI
 Spezialist") beside one that must not ("Bildredakteur", which is the whole
 reason 'bi' carries a word boundary the other alternatives do not), a posting
-outside Germany, and the same vacancy under two sources so deduplication has
-something to do.
+outside Germany, one title per named scope exclusion, an employer whose name
+contains 'data' -- once where the role is off-topic and once where it is not --
+and the same vacancy under two sources so deduplication has something to do.
 
 It also runs on either engine, which is what makes it usable as a CI gate.
 Once production holds thirty days on Databricks and a CI Postgres holds one,
@@ -134,6 +135,51 @@ AG_POSTINGS = [
         "stellenangebotsTitel": "Data Warehouse Entwickler", "firma": "Epsilon SE",
         "datumErsteVeroeffentlichung": "2026-09-05",
     }),
+    # Named exclusions. Each is a category the bare `data` pattern admitted --
+    # a building, a compliance role, a salesperson, a degree place -- and each
+    # is here so the parity gate exercises the alternation rather than just
+    # the happy path. A dialect that spells one of these differently returns
+    # more rows, not an error.
+    ("ag6", "data engineer", {
+        "stellenangebotsTitel": "Data Center Operations Engineer (m/w/d)",
+        "firma": "Iota GmbH",
+        "stellenlokationen": [address("Frankfurt", "60311", "Hessen", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
+    ("ag7", "data engineer", {
+        "stellenangebotsTitel": "Data Protection Officer (m/w/d)", "firma": "Kappa AG",
+        "stellenlokationen": [address("Bonn", "53111", "NRW", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
+    ("ag8", "data engineer", {
+        "stellenangebotsTitel": "Duales Studium Data Science und Kuenstliche Intelligenz",
+        "firma": "Lambda SE",
+        "stellenlokationen": [address("Stuttgart", "70173", "BW", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
+    ("ag9", "data engineer", {
+        "stellenangebotsTitel": "Vertriebsaussendienst (m/w/d) // Sales "
+                                "Representative Industrial Data Solutions",
+        "firma": "My GmbH",
+        "stellenlokationen": [address("Essen", "45127", "NRW", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
+    # The employer prefixes its own name onto the title, so 'data' matches the
+    # company rather than the role. ag10 must drop; ag11 must survive, because
+    # a flat exclusion on the company name is a false negative that looks
+    # exactly like that employer not advertising.
+    ("ag10", "data engineer", {
+        "stellenangebotsTitel": "NTT DATA Deutschland SE: AI Solution Architect (w/m/x)",
+        "firma": "NTT DATA Deutschland SE",
+        "stellenlokationen": [address("Muenchen", "80331", "Bayern", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
+    ("ag11", "data engineer", {
+        "stellenangebotsTitel": "NTT DATA Deutschland SE: Senior Data Engineer (w/m/x)",
+        "firma": "NTT DATA Deutschland SE",
+        "stellenlokationen": [address("Muenchen", "80331", "Bayern", "DEUTSCHLAND")],
+        "datumErsteVeroeffentlichung": "2026-09-06",
+    }),
 ]
 
 AG_DETAILS = [
@@ -144,6 +190,9 @@ AG_DETAILS = [
              "istArbeitnehmerUeberlassung": True}),
     ("ag3", {"stellenangebotsBeschreibung": DESC_STUB}),
     ("ag4", {"stellenangebotsBeschreibung": DESC_EN}),
+    # ag11 is the only one of the exclusion rows that survives, so it is the
+    # only one that needs text to be read for skills.
+    ("ag11", {"stellenangebotsBeschreibung": DESC_EN}),
 ]
 
 # One manifest per (source, run_date), as the loaders write them. rows_read and
@@ -153,7 +202,7 @@ AG_DETAILS = [
 # is a number the diff would notice if the grain stopped collapsing anything.
 INGEST_RUNS = [
     ("arbeitsagentur", {"source": "arbeitsagentur", "results_key": "ergebnisliste",
-                        "rows_read": 6, "duplicates_collapsed": 1}),
+                        "rows_read": 12, "duplicates_collapsed": 1}),
     ("arbeitnow", {"source": "arbeitnow", "results_key": "data",
                    "rows_read": 5, "duplicates_collapsed": 1}),
 ]

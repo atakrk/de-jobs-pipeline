@@ -134,11 +134,78 @@ unioned as (
 --      settled it: over half the second source's surviving rows were in
 --      London and Paris. A dataset that reports on Germany cannot keep rows
 --      it merely hopes are German, so unknown is now excluded and counted.
+--
+-- The role rule is a positive pattern minus two exclusion lists. `data` is
+-- deliberately unbounded -- it has to match 'database', 'Datawarehouse',
+-- 'Data-Engineer' -- and unbounded is also why it matched 97 of the 634
+-- published postings that are not data roles at all: data centre facilities
+-- and electrical engineering, data protection officers, people selling data
+-- products, and dual-study degree programmes. Every published percentage was
+-- computed against a denominator 15% of which was a building, a compliance
+-- officer, a salesperson or a university place.
+--
+-- The lists below are deliberately dull. A cleverer positive pattern -- role
+-- heads only, 'data engineer' and its cousins -- would have been shorter, and
+-- would have silently dropped whatever it failed to anticipate without
+-- anything failing. A named exclusion is reviewable: every entry is a thing
+-- someone read and judged off-topic, and re-admitting one is a one-line diff
+-- with its reason beside it. Add to it from measurement, on the titles an
+-- entry actually removes, not from a guess about what the feed might contain.
+--
+-- Counts below are from the 634 published postings of the 2026-09-10..12
+-- runs, the sample these were chosen against. Categories overlap -- a sales
+-- engineer for data centres is both -- so they do not sum to 97.
+--
+--   data ?cent(er|re) | rechenzentr           54  facilities, electrical,
+--                                                 MEP, network operations
+--   data protection | datenschutz              2  DPOs, and backup/storage
+--   vertrieb | sales <role> | account manager  5  selling data products
+--   dual... | dhbw                            20  a degree place is not a
+--                                                 vacancy
+--   ntt data (guarded, below)                 16
+{%- set scope_roles = '(data|analytics|bi' ~ word_end() ~ '|business intelligence|etl)' %}
+{%- set scope_exclusions = [
+    'data ?cent(er|re)',
+    'rechenzentr',
+    'data protection',
+    'datenschutz',
+    'vertrieb',
+    'sales (specialist|representative|professional|consultant|manager|engineer|support)',
+    'account manager',
+    'dual(es|er|e|en)?[ -](studium|student|bachelor|master|hochschul|studien)',
+    'dhbw'
+] %}
+--
+-- The second list is employer names that contain a scope word. The federal
+-- source lets an employer prefix its own name onto the title, so all 16
+-- "NTT DATA Deutschland SE: ..." rows -- PKI consultants, digital forensics,
+-- a Linux administrator in storage -- were in scope on the company name
+-- alone. Nothing in the title was ever read as a role.
+--
+-- This entry is guarded rather than flat, because NTT DATA does hire data
+-- engineers and a flat entry would drop them without ever saying so: a false
+-- negative that looks exactly like an employer not advertising. A row is
+-- excluded only when the title names no data role of its own. The guard
+-- rescues nothing in the sample it was written against, which is the point --
+-- it is there for the posting that has not been advertised yet.
+{%- set scope_employer_noise = '(ntt data)' %}
+{%- set scope_role_words = [
+    'engineer', 'engineering', 'scientist', 'science', 'analyst', 'analytics',
+    'architect', 'warehouse', 'platform', 'steward', 'governance',
+    'migration', 'integration'
+] %}
+{%- set scope_role_head = '((data|analytics|bi)[ /&-]*('
+                          ~ scope_role_words | join('|') ~ '))' %}
 scoped as (
 
     select
         *,
-        {{ imatch('title', '(data|analytics|bi' ~ word_end() ~ '|business intelligence|etl)') }}
+        {{ imatch('title', scope_roles) }}
+            and not {{ imatch('title', '(' ~ scope_exclusions | join('|') ~ ')') }}
+            and not (
+                {{ imatch('title', scope_employer_noise) }}
+                and not {{ imatch('title', scope_role_head) }}
+            )
             as title_in_scope,
         country = 'DEUTSCHLAND' as country_known
     from unioned
