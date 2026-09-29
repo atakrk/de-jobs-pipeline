@@ -155,6 +155,28 @@
 
 
 {#
+    Case-sensitive match against a pattern built by a SQL expression, with no
+    boundaries added -- for the caller that needs an anchor rather than a word
+    edge, such as "this place name is where the location text begins".
+
+    Build pattern_sql with concat(), which both platforms spell the same, and
+    keep backslashes out of it: Postgres reads '\s' in a literal as two
+    characters and Spark reads it as an escape, which is exactly the
+    difference imatch_word exists to hide. A space written as a space needs
+    no escaping on either.
+#}
+{% macro match_expr(column, pattern_sql) -%}
+    {%- if target.type == 'postgres' -%}
+        {{ column }} ~ ({{ pattern_sql }})
+    {%- elif target.type == 'databricks' -%}
+        {{ column }} rlike ({{ pattern_sql }})
+    {%- else -%}
+        {{ exceptions.raise_compiler_error("match_expr has no implementation for target type '" ~ target.type ~ "'") }}
+    {%- endif -%}
+{%- endmacro %}
+
+
+{#
     End-of-word boundary, for embedding inside a literal pattern where only
     one alternative needs bounding. 'bi' must not match inside 'bild', but
     'data' is deliberately allowed to match inside 'database'.

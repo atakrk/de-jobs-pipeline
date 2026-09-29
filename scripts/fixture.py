@@ -18,9 +18,10 @@ look like a realistic sample: nested and missing JSON keys, empty strings that
 must become null, epoch and boolean casts, a title that must match ("BI
 Spezialist") beside one that must not ("Bildredakteur", which is the whole
 reason 'bi' carries a word boundary the other alternatives do not), a posting
-outside Germany, one title per named scope exclusion, an employer whose name
-contains 'data' -- once where the role is off-topic and once where it is not --
-and the same vacancy under two sources so deduplication has something to do.
+outside Germany, one title per named scope exclusion, board locations that
+must and must not resolve to one city, an employer whose name contains 'data'
+-- once where the role is off-topic and once where it is not -- and the same
+vacancy under two sources so deduplication has something to do.
 
 It also runs on either engine, which is what makes it usable as a CI gate.
 Once production holds thirty days on Databricks and a CI Postgres holds one,
@@ -204,7 +205,7 @@ INGEST_RUNS = [
     ("arbeitsagentur", {"source": "arbeitsagentur", "results_key": "ergebnisliste",
                         "rows_read": 12, "duplicates_collapsed": 1}),
     ("arbeitnow", {"source": "arbeitnow", "results_key": "data",
-                   "rows_read": 5, "duplicates_collapsed": 1}),
+                   "rows_read": 9, "duplicates_collapsed": 1}),
 ]
 
 AN_POSTINGS = [
@@ -223,6 +224,25 @@ AN_POSTINGS = [
     ("an4", {"title": "Data Engineer (m/w/d)", "company_name": "Muster GmbH",
              "description": DESC_EN, "location": "Berlin", "remote": False,
              "url": "https://example.invalid/4", "created_at": "1788912000"}),
+    # City resolution. an5 is an exonym and must land in ag2's row of the city
+    # table -- München, BAYERN -- not in a row of its own called Munich.
+    ("an5", {"title": "Data Platform Engineer", "company_name": "Nu GmbH",
+             "description": DESC_EN, "location": "Munich, Germany", "remote": False,
+             "url": "https://example.invalid/5", "created_at": "1788912000"}),
+    # Several cities: German, and in no single one of them.
+    ("an6", {"title": "Analytics Engineer (m/w/d)", "company_name": "Xi AG",
+             "description": DESC_EN, "location": "Berlin; Munich; Remote",
+             "remote": True, "url": "https://example.invalid/6",
+             "created_at": "1788912000"}),
+    # A known place that the text does not begin with. German, no city.
+    ("an7", {"title": "BI Engineer", "company_name": "Omikron GmbH",
+             "description": DESC_EN, "location": "Remote / Köln", "remote": True,
+             "url": "https://example.invalid/7", "created_at": "1788912000"}),
+    # Wien is a place the federal source reports -- for ag4, in Austria. It
+    # must not make a posting German.
+    ("an8", {"title": "Data Analyst (m/w/d)", "company_name": "Pi GmbH",
+             "description": DESC_EN, "location": "Wien", "remote": False,
+             "url": "https://example.invalid/8", "created_at": "1788912000"}),
 ]
 
 

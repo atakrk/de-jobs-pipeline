@@ -94,8 +94,11 @@ arbeitnow as (
         p.run_date,
         p.title,
         p.employer,
-        p.city,
-        cast(null as {{ dbt.type_string() }})  as region,
+        -- Both derived, see int_arbeitnow_geo. The raw location text used to
+        -- go here, and the city table listed Berlin six times. Null where the
+        -- text names no single city; the raw text stays in int_arbeitnow_geo.
+        g.resolved_city      as city,
+        g.resolved_region    as region,
         g.resolved_country   as country,   -- derived, see int_arbeitnow_geo
         cast(null as {{ type_money() }}) as salary_from,
         cast(null as {{ type_money() }}) as salary_to,

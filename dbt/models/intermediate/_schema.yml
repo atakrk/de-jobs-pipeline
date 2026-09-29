@@ -17,6 +17,17 @@ models:
           punctuation are excluded - they false-match, and they are
           interpolated into a regex downstream.
         tests: [not_null, unique]
+      - name: city
+        description: >
+          The spelling to publish the place under: the one the federal source
+          uses most, or for an exonym the German name it stands for. What puts
+          "Munich" and München in one row of the city table.
+        tests: [not_null]
+      - name: region
+        description: >
+          Federal state, as the federal source states it for this place. Null
+          for an exonym whose German name the federal source has never listed
+          - asserted nowhere rather than looked up.
 
   - name: int_arbeitnow_geo
     description: >
@@ -55,6 +66,15 @@ models:
           - accepted_values:
               arguments:
                 values: ["DEUTSCHLAND", "FOREIGN"]
+      - name: resolved_city
+        description: >
+          The one German city the location names, spelled as the federal
+          source spells it. Only when the text begins with a known place and
+          names no other; otherwise null. Narrower than the country rule on
+          purpose: "Mainz oder Berlin" is German and is not in Berlin. See the
+          model for what was measured.
+      - name: resolved_region
+        description: The federal state of resolved_city, where the federal source states one.
 
   - name: int_postings
     description: >
@@ -83,9 +103,14 @@ models:
       - name: employer
         description: Company name. Half of the deduplication key.
       - name: city
-        description: First listed location.
+        description: >
+          First listed location for federal rows. For second-source rows, the
+          single city int_arbeitnow_geo could name, spelled the federal way,
+          or null where the text names several or none it can vouch for.
       - name: region
-        description: Federal state, where the source states one.
+        description: >
+          Federal state. Stated by the federal source, or for second-source
+          rows taken from the federal source's own listing of that city.
       - name: country
         description: >
           Always DEUTSCHLAND. Federal rows state it; second-source rows have

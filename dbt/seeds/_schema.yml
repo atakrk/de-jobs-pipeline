@@ -32,5 +32,12 @@ seeds:
       - name: alias
         description: The foreign-language spelling to also accept.
         tests: [not_null, unique]
+      - name: city
+        description: >
+          The German name, spelled as the federal database spells it. An alias
+          used to be only a match -- enough to decide a posting was German --
+          and "Munich" and "München" then sat in the city table as two cities
+          with 280 and 216 postings. It is now what the alias resolves to.
+        tests: [not_null]
       - name: note
-        description: Which German city it refers to, for a human reading the seed.
+        description: Which language the exonym comes from, for a human reading the seed.

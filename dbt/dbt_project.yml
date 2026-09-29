@@ -35,6 +35,12 @@ models:
 seeds:
   de_jobs:
     +schema: seeds
+    # Rebuilt on every run rather than truncated and refilled. A seed that
+    # gains a column otherwise fails against the table the last run left --
+    # city_aliases did, and would have failed the next daily run and the
+    # parity gate, both of which build into schemas that already hold it. The
+    # seeds are a few dozen rows; recreating them costs nothing.
+    +full_refresh: true
     skills:
       # Pinned because seed types are inferred from the file: Postgres would
       # size a varchar to the longest pattern present today, so adding a

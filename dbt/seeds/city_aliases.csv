@@ -1,9 +1,9 @@
-alias,note
-munich,English exonym for München
-cologne,English exonym for Köln
-nuremberg,English exonym for Nürnberg
-hanover,English exonym for Hannover
-brunswick,English exonym for Braunschweig
-treves,English exonym for Trier
-ratisbon,English exonym for Regensburg
-aix-la-chapelle,French exonym for Aachen
+alias,city,note
+munich,München,English exonym
+cologne,Köln,English exonym
+nuremberg,Nürnberg,English exonym
+hanover,Hannover,English exonym
+brunswick,Braunschweig,English exonym
+treves,Trier,English exonym
+ratisbon,Regensburg,English exonym
+aix-la-chapelle,Aachen,French exonym
