@@ -1,0 +1,50 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,27,7,3,60000
+Hamburg,HAMBURG,24,8,2,75000
+Köln,NORDRHEIN_WESTFALEN,18,1,1,58000
+Frankfurt am Main,HESSEN,15,3,2,64500
+Dresden,SACHSEN,12,2,1,75000
+Erlangen,BAYERN,10,0,3,70000
+Stuttgart,BADEN_WUERTTEMBERG,10,3,0,
+Donauwörth,BAYERN,9,0,3,56000
+Düsseldorf,NORDRHEIN_WESTFALEN,8,1,2,67500
+Leipzig,SACHSEN,8,1,0,
+München,BAYERN,8,1,0,
+Unknown,,8,2,1,70000
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,7,2,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,7,2,1,59000
+"Nürnberg, Mittelfranken",BAYERN,6,1,1,50000
+Bonn,NORDRHEIN_WESTFALEN,5,1,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,5,0,3,70000
+München,,5,0,0,
+Burgwedel,NIEDERSACHSEN,4,1,0,
+Duisburg,NORDRHEIN_WESTFALEN,4,0,1,60000
+Hannover,NIEDERSACHSEN,4,2,0,
+Mannheim,BADEN_WUERTTEMBERG,4,0,1,70000
+"Ulm, Donau",BADEN_WUERTTEMBERG,4,1,0,
+Berlin,,3,0,0,
+Bremen,BREMEN,3,0,0,
+"Gießen, Lahn",HESSEN,3,2,0,
+"Hemmingen, Württemberg",BADEN_WUERTTEMBERG,3,1,0,
+"Meckenheim, Rheinland",NORDRHEIN_WESTFALEN,3,1,0,
+Oberkochen,BADEN_WUERTTEMBERG,3,0,2,70000
+Oldenburg (Oldb),NIEDERSACHSEN,3,1,1,65000
+Potsdam,BRANDENBURG,3,1,0,
+Coburg,BAYERN,2,1,0,
+Coesfeld,NORDRHEIN_WESTFALEN,2,1,0,
+"Eschborn, Taunus",HESSEN,2,0,0,
+Hamburg,,2,1,0,
+"Kassel, Hessen",HESSEN,2,1,0,
+Kiel,SCHLESWIG_HOLSTEIN,2,1,1,40000
+Lemwerder,NIEDERSACHSEN,2,0,1,70000
+Leverkusen,NORDRHEIN_WESTFALEN,2,1,0,
+Lübeck,SCHLESWIG_HOLSTEIN,2,1,0,
+Manching,BAYERN,2,0,0,
+Nördlingen,BAYERN,2,0,0,
+Osnabrück,NIEDERSACHSEN,2,0,1,54000
+"Rosenheim, Oberbayern",BAYERN,2,0,1,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Sindelfingen,BADEN_WUERTTEMBERG,2,0,0,
+Töpen,BAYERN,2,0,0,
+Unknown,BADEN_WUERTTEMBERG,2,1,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,1,50000
