@@ -85,6 +85,44 @@ jobs:
           python ingest/arbeitsagentur.py --max-pages 20 --with-details --detail-limit 1200
           python ingest/arbeitnow.py --max-pages 5
 
+      # The raw JSON lives on this runner and nowhere else until the load
+      # finishes, and the runner is destroyed when the job ends. From 20 to 28
+      # September the Databricks workspace was deactivated: every morning the
+      # ingest succeeded, the load failed, and the day's responses were thrown
+      # away with the machine. Nine runs, unrecoverable, because both APIs
+      # answer with what is advertised now and never with what was advertised
+      # then.
+      #
+      # So the responses are kept before anything downstream can fail. Ninety
+      # days, the most GitHub allows, because this copy has to outlive an
+      # outage nobody notices for a week, and because it is the only way the
+      # scheduled runs ever reach a laptop -- the Postgres loader keeps
+      # everything and does not prune.
+      #
+      # continue-on-error, because a backup that can stop the load would lose
+      # the day it exists to protect. The step still shows red on the run.
+      #
+      # To restore a run date after an outage:
+      #   gh run download <run-id> -n raw-<run_date> -D data/raw
+      #   python load/load_raw_databricks.py --run-date <run_date>
+      - name: Name the run date
+        id: run
+        # The ingest's own default: date.today() on a runner that is UTC.
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Keep the raw responses
+        uses: actions/upload-artifact@v7
+        continue-on-error: true
+        with:
+          name: raw-${{ steps.run.outputs.date }}
+          # Relative to data/raw, so the download lands back in the layout the
+          # loaders read: data/raw/<source>/<run_date>/.
+          path: data/raw/
+          retention-days: 90
+          if-no-files-found: error
+          # A rerun of the same morning replaces that morning's copy.
+          overwrite: true
+
       - name: Load and prune
         run: python load/load_raw_databricks.py
 

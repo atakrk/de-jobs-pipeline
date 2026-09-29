@@ -130,8 +130,10 @@ to `dbt/models/**` or `dbt/macros/**`. It builds into `fixture_raw` and
 
 `scripts/compare_targets.py` does the same on the real marts, and is only
 meaningful when both engines hold the same runs. They no longer do by default:
-Databricks accumulates what the schedule ingests, and those raw files never
-reach a laptop. Load the same run directories into both first, or read its
+Databricks accumulates what the schedule ingests, and those raw files reach a
+laptop only if fetched: each daily run keeps its responses as a `raw-<run_date>`
+artifact for ninety days (`gh run download <run-id> -n raw-<run_date> -D
+data/raw`). Load the same run directories into both first, or read its
 output as a statement about the data rather than about the engines — the two
 failures that mattered were a grain nobody had written down and two real
 postings that tie, and a fixture can contain neither, so it is still worth
