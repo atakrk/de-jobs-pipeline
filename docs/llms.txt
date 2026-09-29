@@ -9,37 +9,37 @@ Figures from the run of 29 September 2026, tracked daily since 11 September 2026
 A posting counts once per tool, however often it names it.
 
 - Python (language): 60.2% (215 of 357)
-- ETL / ELT (concept): 59.9% (214 of 357)
-- SQL (language): 57.1% (204 of 357)
-- Azure (cloud): 33.3% (119 of 357)
-- Data Lake / Lakehouse (concept): 24.6% (88 of 357)
-- AWS (cloud): 22.4% (80 of 357)
-- Spark (processing): 21.0% (75 of 357)
-- Data Warehouse (concept): 20.7% (74 of 357)
+- ETL / ELT (concept): 59.4% (212 of 357)
+- SQL (language): 58.3% (208 of 357)
+- Azure (cloud): 32.8% (117 of 357)
+- Data Lake / Lakehouse (concept): 24.4% (87 of 357)
+- Data Warehouse (concept): 21.8% (78 of 357)
+- AWS (cloud): 21.3% (76 of 357)
+- Spark (processing): 20.7% (74 of 357)
 - Databricks (platform): 19.9% (71 of 357)
-- Power BI (bi): 16.8% (60 of 357)
-- SAP (platform): 16.5% (59 of 357)
+- Power BI (bi): 17.1% (61 of 357)
+- SAP (platform): 16.8% (60 of 357)
 - Snowflake (warehouse): 16.5% (59 of 357)
 - dbt (transformation): 13.7% (49 of 357)
 - Airflow (orchestration): 13.4% (48 of 357)
-- Kubernetes (platform): 13.4% (48 of 357)
-- Terraform (platform): 12.0% (43 of 357)
+- Kubernetes (platform): 13.2% (47 of 357)
+- Terraform (platform): 11.8% (42 of 357)
 - Kafka (streaming): 10.6% (38 of 357)
-- Docker (platform): 10.4% (37 of 357)
-- Java (language): 9.5% (34 of 357)
-- Microsoft Fabric (platform): 9.2% (33 of 357)
+- Docker (platform): 9.8% (35 of 357)
+- Java (language): 9.8% (35 of 357)
+- Microsoft Fabric (platform): 9.5% (34 of 357)
 - Google Cloud (cloud): 9.0% (32 of 357)
 - Azure Data Factory (orchestration): 8.7% (31 of 357)
-- PostgreSQL (database): 7.3% (26 of 357)
+- PostgreSQL (database): 7.6% (27 of 357)
 - Dagster (orchestration): 5.0% (18 of 357)
-- Oracle (database): 4.8% (17 of 357)
+- Oracle (database): 5.0% (18 of 357)
 - SQL Server (database): 4.8% (17 of 357)
 - Scala (language): 4.5% (16 of 357)
 - Azure Synapse (warehouse): 3.9% (14 of 357)
 - BigQuery (warehouse): 3.6% (13 of 357)
 - Tableau (bi): 3.6% (13 of 357)
 - Flink (streaming): 3.1% (11 of 357)
-- MongoDB (database): 2.0% (7 of 357)
+- MongoDB (database): 1.7% (6 of 357)
 - Redshift (warehouse): 1.4% (5 of 357)
 - Looker (bi): 0.8% (3 of 357)
 
@@ -47,8 +47,8 @@ A posting counts once per tool, however often it names it.
 
 Only an explicit competency phrase counts as requiring German, and most German postings are written in German regardless, so the German shares are floors, not ceilings.
 
-- All postings: 46.2% (165 of 357) state a German requirement; 26.3% (94 of 357) mention English without requiring German
-- Bundesagentur für Arbeit: 46.7% (158 of 338) state a German requirement; 24.6% (83 of 338) mention English without requiring German
+- All postings: 46.5% (166 of 357) state a German requirement; 24.6% (88 of 357) mention English without requiring German
+- Bundesagentur für Arbeit: 46.8% (160 of 342) state a German requirement; 24.3% (83 of 342) mention English without requiring German
 
 ## Median advertised salary by tool
 
@@ -82,16 +82,16 @@ Advertised, not paid. Only a minority of postings state a salary, tools with few
 
 - Berlin: 27 postings
 - Hamburg: 24 postings
-- Köln: 18 postings
+- Köln: 19 postings
 - Frankfurt am Main: 15 postings
 - Dresden: 12 postings
 - Erlangen: 10 postings
 - Stuttgart: 10 postings
 - Donauwörth: 9 postings
+- Unknown: 9 postings
 - Düsseldorf: 8 postings
 - Leipzig: 8 postings
 - München: 8 postings
-- Unknown: 8 postings
 
 ## Method
 

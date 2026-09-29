@@ -27,8 +27,8 @@ so any number here can be traced back to the run that produced it.
 
 | | share of postings |
 | --- | --- |
-| Azure | 33.3% |
-| AWS | 22.4% |
+| Azure | 32.8% |
+| AWS | 21.3% |
 | Google Cloud | 9.0% |
 
 Azure appears **1.5×** as often as AWS.
@@ -39,10 +39,10 @@ Stages in the order the pipeline applies them. The last row is the denominator a
 
 | stage | unit | records | of previous | of rows read |
 | --- | --- | ---: | ---: | ---: |
-| rows read | posting-run | 19,378 | — | 100.0% |
-| distinct postings | posting-run | 17,825 | 92.0% | 92.0% |
-| title in scope | posting-run | 5,086 | 28.5% | 26.2% |
-| in germany | posting-run | 4,335 | 85.2% | 22.4% |
+| rows read | posting-run | 19,388 | — | 100.0% |
+| distinct postings | posting-run | 17,759 | 91.6% | 91.6% |
+| title in scope | posting-run | 5,080 | 28.6% | 26.2% |
+| in germany | posting-run | 4,335 | 85.3% | 22.4% |
 | latest snapshot | posting | 819 | 18.9% \* | 4.2% |
 | still advertised | posting | 374 | 45.7% | 1.9% |
 | deduplicated | posting | 357 | 95.5% | 1.8% |
@@ -54,7 +54,7 @@ Stages in the order the pipeline applies them. The last row is the denominator a
 
 | requires German | mentions English, no German requirement | neither stated |
 | --- | --- | --- |
-| **46.2%** | **26.3%** | **27.5%** |
+| **46.5%** | **24.6%** | **28.9%** |
 
 <!-- FINDINGS:END -->
 

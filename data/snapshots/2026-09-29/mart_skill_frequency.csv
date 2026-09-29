@@ -1,35 +1,35 @@
 skill_key,display_name,category,postings,postings_with_text,pct_of_postings
 python,Python,language,215,357,60.2
-etl,ETL / ELT,concept,214,357,59.9
-sql,SQL,language,204,357,57.1
-azure,Azure,cloud,119,357,33.3
-lakehouse,Data Lake / Lakehouse,concept,88,357,24.6
-aws,AWS,cloud,80,357,22.4
-spark,Spark,processing,75,357,21.0
-warehouse,Data Warehouse,concept,74,357,20.7
+etl,ETL / ELT,concept,212,357,59.4
+sql,SQL,language,208,357,58.3
+azure,Azure,cloud,117,357,32.8
+lakehouse,Data Lake / Lakehouse,concept,87,357,24.4
+warehouse,Data Warehouse,concept,78,357,21.8
+aws,AWS,cloud,76,357,21.3
+spark,Spark,processing,74,357,20.7
 databricks,Databricks,platform,71,357,19.9
-powerbi,Power BI,bi,60,357,16.8
-sap,SAP,platform,59,357,16.5
+powerbi,Power BI,bi,61,357,17.1
+sap,SAP,platform,60,357,16.8
 snowflake,Snowflake,warehouse,59,357,16.5
 dbt,dbt,transformation,49,357,13.7
 airflow,Airflow,orchestration,48,357,13.4
-kubernetes,Kubernetes,platform,48,357,13.4
-terraform,Terraform,platform,43,357,12.0
+kubernetes,Kubernetes,platform,47,357,13.2
+terraform,Terraform,platform,42,357,11.8
 kafka,Kafka,streaming,38,357,10.6
-docker,Docker,platform,37,357,10.4
-java,Java,language,34,357,9.5
-fabric,Microsoft Fabric,platform,33,357,9.2
+docker,Docker,platform,35,357,9.8
+java,Java,language,35,357,9.8
+fabric,Microsoft Fabric,platform,34,357,9.5
 gcp,Google Cloud,cloud,32,357,9.0
 datafactory,Azure Data Factory,orchestration,31,357,8.7
-postgres,PostgreSQL,database,26,357,7.3
+postgres,PostgreSQL,database,27,357,7.6
 dagster,Dagster,orchestration,18,357,5.0
-oracle,Oracle,database,17,357,4.8
+oracle,Oracle,database,18,357,5.0
 sqlserver,SQL Server,database,17,357,4.8
 scala,Scala,language,16,357,4.5
 synapse,Azure Synapse,warehouse,14,357,3.9
 bigquery,BigQuery,warehouse,13,357,3.6
 tableau,Tableau,bi,13,357,3.6
 flink,Flink,streaming,11,357,3.1
-mongodb,MongoDB,database,7,357,2.0
+mongodb,MongoDB,database,6,357,1.7
 redshift,Redshift,warehouse,5,357,1.4
 looker,Looker,bi,3,357,0.8
