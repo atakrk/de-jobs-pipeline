@@ -139,16 +139,23 @@ always describes the models that actually exist.
 ## Architecture
 
 ```
-API  ->  raw JSON (immutable)  ->  Postgres  ->  dbt  ->  marts  ->  charts
+API  ->  raw JSON (immutable)  ->  warehouse  ->  dbt  ->  marts  ->  charts
 ```
 
 The raw layer is never edited. Every downstream table must be reproducible
 from the JSON on disk — the same discipline as a staging table you can always
 replay.
 
+The warehouse is Databricks in production and Postgres locally. The models are
+single-source across both, with the dialect differences confined to macros,
+which is only worth anything if the two engines agree on real expressions: a
+green `dbt build` shows that the SQL compiled, not that it returns the same
+rows. A [parity workflow](.github/workflows/parity.yml) builds the same fixture
+on each and diffs the output whenever a model or macro changes.
+
 ```
 ingest/     API clients, one per source, writing untouched responses
-load/       raw JSON -> Postgres
+load/       raw JSON -> the warehouse, one loader per engine
 dbt/        staging -> intermediate (dedup, geo, skill parsing) -> marts
 analysis/   charts, snapshot export, and the audits behind two decisions
 ```
@@ -195,14 +202,14 @@ recording what the run actually fetched.
 ## Roadmap
 
 - [x] Raw ingest from both sources, with retry, backoff and run manifests
-- [x] Load raw JSON into Postgres
+- [x] Load raw JSON into the warehouse
 - [x] Cross-source deduplication
 - [x] Skill extraction from posting text
 - [x] dbt marts: tool frequency, city breakdown, German-language requirement
 - [x] Charts and findings
 - [x] Daily scheduled run, with dbt's tests running against the live API
 - [ ] Airflow, if and when the job stops being one linear sequence
-- [ ] Port the dbt models to Databricks
+- [x] Port the dbt models to Databricks, with a fixture parity check against Postgres
 
 ## Licence
 

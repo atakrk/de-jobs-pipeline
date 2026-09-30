@@ -1,10 +1,10 @@
 # Kept in the repo rather than ~/.dbt so the project is self-contained.
 # Credentials come from the environment; the defaults match docker-compose.
 #
-# Two targets. `dev` is Postgres and is what the daily schedule runs: free,
-# fast, and it is where the published figures come from. `databricks` is run
-# deliberately rather than nightly, and exists because the same models should
-# be demonstrable on the platform this market actually asks for.
+# Two targets. `dev` is Postgres and is the default, so a local build needs no
+# flags and no credentials beyond docker-compose. `databricks` is production:
+# the daily schedule runs it, the published figures come from it, and it keeps
+# thirty days where a local Postgres keeps whatever you last loaded.
 #
 # Credentials come from the environment. dbt does not read .env, so export
 # them first:
