@@ -1,0 +1,54 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,48,7,2,55000
+Hamburg,HAMBURG,31,9,2,75000
+Köln,NORDRHEIN_WESTFALEN,24,2,1,58000
+München,BAYERN,24,2,0,
+Unknown,,22,2,1,70000
+Frankfurt am Main,HESSEN,17,3,2,64500
+Dresden,SACHSEN,13,2,1,75000
+Erlangen,BAYERN,11,0,4,67500
+Stuttgart,BADEN_WUERTTEMBERG,11,2,0,
+Donauwörth,BAYERN,9,0,3,56000
+Düsseldorf,NORDRHEIN_WESTFALEN,9,1,2,67500
+"Nürnberg, Mittelfranken",BAYERN,9,2,1,50000
+Leipzig,SACHSEN,8,0,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,8,3,1,59000
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,7,2,0,
+"Bad Grönenbach, Allgäu",BAYERN,5,0,0,
+Bonn,NORDRHEIN_WESTFALEN,5,1,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,5,0,3,70000
+Oberkochen,BADEN_WUERTTEMBERG,5,0,2,70000
+"Ulm, Donau",BADEN_WUERTTEMBERG,5,2,0,
+Burgwedel,NIEDERSACHSEN,4,1,0,
+Duisburg,NORDRHEIN_WESTFALEN,4,0,1,60000
+"Eschborn, Taunus",HESSEN,4,0,0,
+Mannheim,BADEN_WUERTTEMBERG,4,0,1,70000
+Bremen,BREMEN,3,0,0,
+"Gießen, Lahn",HESSEN,3,2,0,
+Hannover,NIEDERSACHSEN,3,1,0,
+"Hemmingen, Württemberg",BADEN_WUERTTEMBERG,3,1,0,
+Oldenburg (Oldb),NIEDERSACHSEN,3,1,1,65000
+"Rosenheim, Oberbayern",BAYERN,3,0,1,
+Bielefeld,NORDRHEIN_WESTFALEN,2,0,0,
+Coburg,BAYERN,2,1,0,
+Coesfeld,NORDRHEIN_WESTFALEN,2,1,0,
+Dortmund,NORDRHEIN_WESTFALEN,2,0,1,57600
+Garching bei München,BAYERN,2,0,0,
+"Kassel, Hessen",HESSEN,2,1,0,
+Kiel,SCHLESWIG_HOLSTEIN,2,1,1,40000
+Lemwerder,NIEDERSACHSEN,2,0,1,70000
+Leverkusen,NORDRHEIN_WESTFALEN,2,1,0,
+Lübeck,SCHLESWIG_HOLSTEIN,2,1,0,
+Manching,BAYERN,2,0,0,
+"Meckenheim, Rheinland",NORDRHEIN_WESTFALEN,2,0,0,
+Mülheim an der Ruhr,NORDRHEIN_WESTFALEN,2,0,0,
+Neuss,NORDRHEIN_WESTFALEN,2,1,0,
+Nördlingen,BAYERN,2,0,0,
+Osnabrück,NIEDERSACHSEN,2,0,1,54000
+Potsdam,BRANDENBURG,2,0,0,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Sindelfingen,BADEN_WUERTTEMBERG,2,0,0,
+Töpen,BAYERN,2,0,0,
+Unknown,BADEN_WUERTTEMBERG,2,1,0,
+Unterföhring,BAYERN,2,0,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,1,50000
