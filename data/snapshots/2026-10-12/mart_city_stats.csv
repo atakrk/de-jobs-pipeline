@@ -1,0 +1,54 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,51,7,2,55000
+Hamburg,HAMBURG,32,12,2,75000
+München,BAYERN,32,2,0,
+Köln,NORDRHEIN_WESTFALEN,26,3,1,58000
+Unknown,,22,2,1,70000
+Frankfurt am Main,HESSEN,19,3,2,64500
+Erlangen,BAYERN,14,0,4,67500
+Dresden,SACHSEN,13,3,1,75000
+Düsseldorf,NORDRHEIN_WESTFALEN,11,2,2,71362
+"Nürnberg, Mittelfranken",BAYERN,10,2,1,50000
+Stuttgart,BADEN_WUERTTEMBERG,10,3,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,9,3,1,59000
+Leipzig,SACHSEN,8,0,0,
+Bonn,NORDRHEIN_WESTFALEN,7,1,0,
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,6,2,0,
+"Bad Grönenbach, Allgäu",BAYERN,5,0,0,
+Donauwörth,BAYERN,5,0,2,55500
+Hannover,NIEDERSACHSEN,5,2,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,5,0,3,70000
+Duisburg,NORDRHEIN_WESTFALEN,4,0,1,60000
+Mannheim,BADEN_WUERTTEMBERG,4,0,0,
+"Ulm, Donau",BADEN_WUERTTEMBERG,4,2,0,
+Bremen,BREMEN,3,0,0,
+Dortmund,NORDRHEIN_WESTFALEN,3,0,1,57600
+"Gießen, Lahn",HESSEN,3,2,0,
+"Hemmingen, Württemberg",BADEN_WUERTTEMBERG,3,1,0,
+Kiel,SCHLESWIG_HOLSTEIN,3,1,1,40000
+Bad Homburg vor der Höhe,HESSEN,2,0,1,103380
+Burgwedel,NIEDERSACHSEN,2,0,0,
+Coesfeld,NORDRHEIN_WESTFALEN,2,1,0,
+"Eschborn, Taunus",HESSEN,2,0,0,
+Garching bei München,BAYERN,2,0,0,
+Ingelheim am Rhein,RHEINLAND_PFALZ,2,0,0,
+Kamp-Lintfort,NORDRHEIN_WESTFALEN,2,1,0,
+"Kassel, Hessen",HESSEN,2,1,0,
+Leverkusen,NORDRHEIN_WESTFALEN,2,1,0,
+Lübeck,SCHLESWIG_HOLSTEIN,2,1,0,
+Manching,BAYERN,2,0,0,
+"Meckenheim, Rheinland",NORDRHEIN_WESTFALEN,2,0,0,
+Mülheim an der Ruhr,NORDRHEIN_WESTFALEN,2,0,0,
+Neuss,NORDRHEIN_WESTFALEN,2,1,0,
+Nördlingen,BAYERN,2,0,0,
+Oberkochen,BADEN_WUERTTEMBERG,2,0,1,70000
+Oldenburg (Oldb),NIEDERSACHSEN,2,1,0,
+Osnabrück,NIEDERSACHSEN,2,0,1,54000
+Poing bei München,BAYERN,2,0,0,
+Potsdam,BRANDENBURG,2,0,0,
+"Rosenheim, Oberbayern",BAYERN,2,0,1,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Sindelfingen,BADEN_WUERTTEMBERG,2,0,0,
+Unterföhring,BAYERN,2,0,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,1,50000
+Wiesbaden,HESSEN,2,0,0,
