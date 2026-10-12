@@ -60,13 +60,22 @@ federal_canonical as (
 -- An exonym resolves to the German name it stands for, and takes that name's
 -- state where the federal source knows it. An exonym the federal source has
 -- never listed still counts as German, with no state asserted for it.
+-- Selected into its own CTE rather than aliased where it is joined. `dbt run
+-- --empty`, which the docs job uses, renders a ref as an aliased subquery, and
+-- a second alias written after it is a syntax error on Postgres.
+aliases as (
+
+    select alias, city from {{ ref('city_aliases') }}
+
+),
+
 from_aliases as (
 
     select
         {{ norm('a.alias') }} as city_norm,
         a.city,
         f.region
-    from {{ ref('city_aliases') }} a
+    from aliases a
     left join federal_canonical f
         on f.city_norm = {{ norm('a.city') }}
 
