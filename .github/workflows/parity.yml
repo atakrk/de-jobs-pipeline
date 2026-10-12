@@ -12,26 +12,18 @@ name: parity
 # identically -- rows chosen to hit the expressions that are easy to get wrong,
 # not to look like a realistic sample.
 #
-# Runs on changes to the models or to the dialect macros, because that is when
-# the two builds can diverge.
+# It used to run on every change to the models or the dialect macros. Since
+# the daily run moved back to Postgres, Databricks is optional, and a check
+# that needs a workspace which may be switched off would turn every model
+# change red for a reason unrelated to the change. Run it by hand when a
+# dialect macro changes and the workspace is up.
 
 on:
-  push:
-    paths:
-      - "dbt/models/**"
-      - "dbt/macros/**"
-      - "scripts/fixture.py"
-      - ".github/workflows/parity.yml"
   workflow_dispatch:
 
 concurrency:
-  # Both workflows drive the same 2X-Small serverless warehouse -- the only one
-  # a free workspace gets -- so they queue rather than run together. Never
-  # cancel-in-progress here: it is not a stale build being superseded, it is a
-  # job holding the warehouse, and killing it mid-write leaves a run date half
-  # loaded. A parity run therefore waits for the daily one, which is the right
-  # way round: the schedule is production.
-  group: databricks-warehouse
+  # The fixture truncates what it writes to; two runs at once would interleave.
+  group: databricks-parity
   cancel-in-progress: false
 
 jobs:

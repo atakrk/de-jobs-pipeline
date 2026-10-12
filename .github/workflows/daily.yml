@@ -5,13 +5,20 @@ name: daily
 # changes shape -- a renamed field, a moved endpoint, an auth change -- the
 # build goes red and says so, instead of the numbers quietly drifting.
 #
-# This used to build into a Postgres service container, which GitHub created
-# empty and destroyed ten minutes later. That made every published figure one
-# morning's sample: the raw layer never accumulated, so "the latest run per
-# posting" and "the newest description ever fetched" had nothing to choose
-# between, and the README could swing from 633 postings to 411 overnight
-# because the sample moved rather than the market. It builds into Databricks
-# now, which keeps thirty days and is pruned back to it by the loader.
+# It builds into a Postgres service container, which GitHub creates empty and
+# destroys when the job ends. Built from one morning alone, every published
+# figure would be one morning's sample -- the README once swung from 633
+# postings to 411 overnight because the sample moved, not the market. So
+# before loading, the job restores the last thirty days of raw responses from
+# the artifacts earlier runs kept, and the warehouse is rebuilt from them.
+#
+# From 13 September to 4 October this built into Databricks instead, which
+# kept the thirty days itself. From 5 October the load into the free workspace
+# failed every morning, after the ingest had succeeded and the responses had
+# been kept -- the second outage in three weeks. A free tier that can switch
+# off is not a production dependency, and the artifacts already held
+# everything the warehouse did. The
+# Databricks target, loader and parity check stay in the repo and run by hand.
 
 on:
   schedule:
@@ -21,38 +28,51 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Both workflows drive the same 2X-Small serverless warehouse -- the only one
-  # a free workspace gets -- so they queue rather than run together. Never
-  # cancel-in-progress here: it is not a stale build being superseded, it is a
-  # job holding the warehouse, and killing it mid-write leaves a run date half
-  # loaded. A parity run therefore waits for the daily one, which is the right
-  # way round: the schedule is production.
-  group: databricks-warehouse
+  # Never cancel-in-progress: a manual run started while the schedule is
+  # committing would otherwise kill the job that is pushing the results.
+  group: daily
   cancel-in-progress: false
 
 permissions:
   contents: write
+  # Read by scripts/restore_raw.py to list and download earlier runs' raw
+  # artifacts.
+  actions: read
 
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    # Generous because the serverless warehouse cold-starts: the first
-    # statement of the day waits for compute that is not running yet. The
-    # answer to a slow start is a longer timeout, not dbt wrapped in retries --
-    # a retry around a build turns one honest failure into three.
+    # The ingest is most of it: a one-second delay between requests to a
+    # public API, for about a thousand detail pages.
     timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: jobs
+          POSTGRES_USER: jobs
+          POSTGRES_PASSWORD: jobs
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U jobs -d jobs"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     env:
       # Gentler than the local default: this is someone else's public service
       # and nobody is waiting on the result.
       REQUEST_DELAY_SECONDS: "1.0"
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-      DATABRICKS_CATALOG: ${{ secrets.DATABRICKS_CATALOG }}
+      PGHOST: localhost
+      PGPORT: 5433
+      PGDATABASE: jobs
+      PGUSER: jobs
+      PGPASSWORD: jobs
       # Read by analysis/warehouse.py, so the three analysis steps do not each
       # have to be told where the marts were built.
-      WAREHOUSE_TARGET: databricks
+      WAREHOUSE_TARGET: postgres
 
     steps:
       - uses: actions/checkout@v7
@@ -85,8 +105,8 @@ jobs:
           python ingest/arbeitsagentur.py --max-pages 20 --with-details --detail-limit 1200
           python ingest/arbeitnow.py --max-pages 5
 
-      # The raw JSON lives on this runner and nowhere else until the load
-      # finishes, and the runner is destroyed when the job ends. From 20 to 28
+      # The raw JSON lives on this runner and nowhere else until it is
+      # uploaded, and the runner is destroyed when the job ends. From 20 to 28
       # September the Databricks workspace was deactivated: every morning the
       # ingest succeeded, the load failed, and the day's responses were thrown
       # away with the machine. Nine runs, unrecoverable, because both APIs
@@ -94,17 +114,16 @@ jobs:
       # then.
       #
       # So the responses are kept before anything downstream can fail. Ninety
-      # days, the most GitHub allows, because this copy has to outlive an
-      # outage nobody notices for a week, and because it is the only way the
-      # scheduled runs ever reach a laptop -- the Postgres loader keeps
-      # everything and does not prune.
+      # days, the most GitHub allows. These artifacts are now also the
+      # warehouse's history: the restore step below rebuilds thirty days from
+      # them every morning, and they are how the scheduled runs reach a laptop.
       #
       # continue-on-error, because a backup that can stop the load would lose
       # the day it exists to protect. The step still shows red on the run.
       #
-      # To restore a run date after an outage:
+      # To fetch a run date locally:
       #   gh run download <run-id> -n raw-<run_date> -D data/raw
-      #   python load/load_raw_databricks.py --run-date <run_date>
+      #   python load/load_raw.py --run-date <run_date>
       - name: Name the run date
         id: run
         # The ingest's own default: date.today() on a runner that is UTC.
@@ -123,14 +142,25 @@ jobs:
           # A rerun of the same morning replaces that morning's copy.
           overwrite: true
 
-      - name: Load and prune
-        run: python load/load_raw_databricks.py
+      # Thirty days, the window the Databricks loader used to prune to: the
+      # models ask for the latest run per posting and the newest description
+      # ever fetched, and neither reaches past the life of a posting. Today's
+      # run is already on disk and is not overwritten. A failure to list the
+      # artifacts fails the job rather than publishing one morning as if it
+      # were the month.
+      - name: Restore the last thirty days
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python scripts/restore_raw.py --days 30 --until ${{ steps.run.outputs.date }}
+
+      - name: Load
+        run: python load/load_raw.py
 
       - name: Build and test
         working-directory: dbt
         run: |
-          dbt seed --profiles-dir . --target databricks
-          dbt build --profiles-dir . --target databricks
+          dbt seed --profiles-dir .
+          dbt build --profiles-dir .
 
       # The site is rebuilt here, in the job that produced the data, and has no
       # schedule of its own. A separately scheduled site is one that can

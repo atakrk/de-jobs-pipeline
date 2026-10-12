@@ -2,9 +2,10 @@
 
 The snapshots are the published time series. They began as a workaround -- a
 CI Postgres was created and destroyed with the job, so a single run could not
-hold history and git had to. The daily run now builds on Databricks, which
-does accumulate, but the snapshots stay: they are small, they are diffable,
-and they outlive the thirty-day retention window the warehouse is bounded to.
+hold history and git had to. The daily run now restores thirty days of raw
+responses before it builds, so the warehouse holds history again, but the
+snapshots stay: they are small, they are diffable, and they outlive that
+window.
 
 One reader, two connections, the same shape the loaders use. Which marts are
 read and how they are written must not depend on where they were built, or the

@@ -2,8 +2,8 @@
 
 A pipeline that measures what German data engineering job postings ask for.
 Two public job APIs, modelled with dbt, running daily on GitHub Actions into
-Databricks; Postgres is the local copy and the same models build on both. The
-README holds the findings; this file holds the conventions.
+Postgres; the same models also build on Databricks, which is optional and run
+by hand. The README holds the findings; this file holds the conventions.
 
 ## Layout
 
@@ -30,8 +30,8 @@ cd dbt && dbt build --profiles-dir .
 cd .. && python analysis/make_charts.py
 ```
 
-Same data on Databricks, which is what the daily run writes to — credentials
-come from `.env`, which is gitignored and never pasted anywhere:
+Same data on Databricks, optional since the daily run moved back to Postgres —
+credentials come from `.env`, which is gitignored and never pasted anywhere:
 
 ```bash
 set -a; source .env; set +a
@@ -56,10 +56,12 @@ answers once per search term — and for a long time only the upsert was
 collapsing those. Delta has no primary key, so the same files landed a fifth
 heavier there. A guarantee that only one platform provides is an accident.
 
-**Databricks keeps thirty days; the laptop keeps everything.** The warehouse is
-written to daily, so `load_raw_databricks.py --retain-days` bounds it and
-deletes older run dates after loading, logging what went. The models ask two
-things of history — the latest run per posting, and the newest description
+**The daily build sees thirty days; the laptop keeps everything.** The CI
+Postgres is created empty each morning, so `scripts/restore_raw.py` downloads
+the last thirty days of `raw-<run_date>` artifacts before the load. (When
+Databricks was the daily target it kept the window itself, and
+`load_raw_databricks.py --retain-days` still prunes to it there.) The models
+ask two things of history — the latest run per posting, and the newest description
 ever fetched for it — and neither reaches past the life of a posting, so the
 window only has to outlive one. The bound is real: a description fetched forty
 days ago is gone, and a posting whose text was never re-fetched inside the
@@ -124,14 +126,13 @@ model, and do not inline platform syntax "just this once".
 rewrite compiles, and a wrong one returns fewer rows rather than an error.
 
 `scripts/fixture.py --target` loads the same synthetic rows into either engine
-and dumps every model, and the `parity` workflow diffs the two on any change
-to `dbt/models/**` or `dbt/macros/**`. It builds into `fixture_raw` and
+and dumps every model, and the `parity` workflow diffs the two. It runs by
+hand now, since Databricks is optional: run it when `dbt/macros/**` changes. It builds into `fixture_raw` and
 `fixture_*` so it cannot reach the tables holding real runs.
 
 `scripts/compare_targets.py` does the same on the real marts, and is only
-meaningful when both engines hold the same runs. They no longer do by default:
-Databricks accumulates what the schedule ingests, and those raw files reach a
-laptop only if fetched: each daily run keeps its responses as a `raw-<run_date>`
+meaningful when both engines hold the same runs. They do not by default: the
+schedule's raw files reach a laptop or a Databricks workspace only if fetched: each daily run keeps its responses as a `raw-<run_date>`
 artifact for ninety days (`gh run download <run-id> -n raw-<run_date> -D
 data/raw`). Load the same run directories into both first, or read its
 output as a statement about the data rather than about the engines — the two

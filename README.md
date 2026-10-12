@@ -146,12 +146,14 @@ The raw layer is never edited. Every downstream table must be reproducible
 from the JSON on disk — the same discipline as a staging table you can always
 replay.
 
-The warehouse is Databricks in production and Postgres locally. The models are
-single-source across both, with the dialect differences confined to macros,
-which is only worth anything if the two engines agree on real expressions: a
-green `dbt build` shows that the SQL compiled, not that it returns the same
-rows. A [parity workflow](.github/workflows/parity.yml) builds the same fixture
-on each and diffs the output whenever a model or macro changes.
+The warehouse is Postgres, in the daily run and locally. The models also build
+on Databricks from the same files, with the dialect differences confined to
+macros, which is only worth anything if the two engines agree on real
+expressions: a green `dbt build` shows that the SQL compiled, not that it
+returns the same rows. A [parity workflow](.github/workflows/parity.yml) builds
+the same fixture on each and diffs the output. Databricks ran the daily build
+for three weeks and is now optional, run by hand: the free workspace failed
+twice in that time, and a schedule cannot rest on it.
 
 ```
 ingest/     API clients, one per source, writing untouched responses
@@ -161,11 +163,12 @@ analysis/   charts, snapshot export, and the audits behind two decisions
 ```
 
 It runs itself. A [scheduled workflow](.github/workflows/daily.yml) ingests,
-loads, builds and tests every morning into Databricks, then commits the marts
-as dated CSVs under `data/snapshots/`. The warehouse keeps the last thirty
-days, so the models can ask what a posting looked like yesterday; the CSVs are
-committed anyway, because they are small, diffable, and outlive the retention
-window.
+loads, builds and tests every morning, then commits the marts as dated CSVs
+under `data/snapshots/`. Each run keeps its raw responses as an artifact, and
+the next morning restores the last thirty days of them before loading, so the
+models can ask what a posting looked like yesterday even though the CI
+database is created empty. The CSVs are committed anyway, because they are
+small, diffable, and outlive the thirty-day window.
 
 The schedule is not really about fresh data. It is that dbt's tests run daily
 against a live third-party API: if the source changes shape, the build goes
@@ -209,7 +212,7 @@ recording what the run actually fetched.
 - [x] Charts and findings
 - [x] Daily scheduled run, with dbt's tests running against the live API
 - [ ] Airflow, if and when the job stops being one linear sequence
-- [x] Port the dbt models to Databricks, with a fixture parity check against Postgres
+- [x] Port the dbt models to Databricks, with a fixture parity check against Postgres (now optional; the daily run is back on Postgres)
 
 ## Licence
 
