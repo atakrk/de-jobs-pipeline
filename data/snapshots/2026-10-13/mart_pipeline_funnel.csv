@@ -1,0 +1,9 @@
+stage_order,stage,grain,records,pct_of_previous,pct_of_first,dropped,grain_changes_here
+1,rows_read,posting-run,29757,,100.0,,False
+2,distinct_postings,posting-run,26091,87.7,87.7,3666,False
+3,title_in_scope,posting-run,6224,23.9,20.9,19867,False
+4,in_germany,posting-run,5097,81.9,17.1,1127,False
+5,latest_snapshot,posting,672,13.2,2.3,4425,True
+6,still_advertised,posting,488,72.6,1.6,184,False
+7,deduplicated,posting,445,91.2,1.5,43,False
+8,with_description,posting,445,100.0,1.5,0,False
