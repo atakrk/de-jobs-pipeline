@@ -1,16 +1,12 @@
 -- One row per (posting, skill) mention.
---
--- Matching uses word boundaries, which matters more than it looks: without
--- them 'sql' matches inside 'postgresql' and 'r' matches inside every German
--- word on the page. Patterns live in a seed rather than in this SQL so that
--- adding a tool is a data change, reviewable as a one-line diff.
+-- Patterns come from the skills seed and match on word boundaries.
 
 with postings as (
 
     select posting_id, source, description
     from {{ ref('int_postings') }}
     where description is not null
-      and length(description) > {{ var('description_min_chars') }}   -- stubs carry no requirements
+      and length(description) > {{ var('description_min_chars') }}
 
 ),
 

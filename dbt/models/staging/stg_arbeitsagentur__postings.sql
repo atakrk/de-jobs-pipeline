@@ -1,8 +1,5 @@
--- Listing rows, flattened. One row per posting per run.
---
--- A posting can sit in several locations; we keep the first, and carry the
--- count so a later model can tell "Berlin" from "Berlin plus four others"
--- rather than silently pretending every posting is single-site.
+-- Federal API listings, flattened only (no business rules). One row per posting per run.
+-- First location is kept; location_count shows multi-site postings.
 
 with source as (
 

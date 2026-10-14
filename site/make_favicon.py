@@ -1,14 +1,9 @@
 """Draw docs/favicon.ico: the DE plate from favicon.svg, as pixels.
 
-favicon.svg is what a client that reads the page's <link rel="icon"> gets.
-Plenty do not read the page first -- they ask for /favicon.ico by convention,
-and were answered with GitHub's 404. This draws the same plate on the same
-64-unit grid, at the sizes an .ico carries, in the monospace face matplotlib
-ships, so it needs nothing the pipeline does not already install.
+For clients that request /favicon.ico directly. Run by hand when the mark
+changes, together with favicon.svg.
 
-It holds no data, so nothing runs it on a schedule. Run it by hand when the
-mark changes, and change favicon.svg with it.
-
+Usage:
     python site/make_favicon.py
 """
 
@@ -29,8 +24,7 @@ CANVAS = 256
 
 INK = "#0b0b0b"
 PAPER = "#fcfcfb"
-# Schwarz-Rot-Gold, with the dark theme's black so the first stripe shows on
-# the plate. The same three values as favicon.svg.
+# Flag stripes, same values as favicon.svg (grey instead of black).
 STRIPES = ["#5c5c58", "#dd0000", "#ffce00"]
 
 

@@ -1,6 +1,5 @@
 -- How often each tool is named, and in what share of postings.
--- The denominator is postings that HAVE a description, not all postings:
--- dividing by rows we could never have matched would understate everything.
+-- Denominator is postings with a description, not all postings.
 
 with scored as (
 

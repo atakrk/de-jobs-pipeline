@@ -1,33 +1,11 @@
 """Generate dedata.dev from the pipeline's daily snapshots.
 
-The site is static: no backend, no database, no API. Every figure it shows comes
-from the CSVs the pipeline commits to de-jobs-pipeline under
-data/snapshots/<date>/, which means the site can only ever show numbers that are
-already in a public repository, traceable to the run that produced them.
+Static site built from data/snapshots/<date>/ CSVs. Figures are rendered into
+the HTML (no client-side drawing). Edit site/template.html; index.html,
+sitemap.xml, llms.txt and og.png in docs/ are generated. Run in the same job
+that produced the snapshots.
 
-Every day is compiled, not just the newest, because the point of a site that
-runs continuously is the series. The latest day answers "what does the market
-ask for"; the days behind it answer "and is that changing".
-
-The figures are written into the markup here, not drawn by the browser. The page
-used to arrive with no numbers in it and a script that put them there, which is
-a page with no numbers to anything that does not run scripts -- a search
-crawler, a link preview, a model reading the web. What the site has that the
-pages already ranking for the subject do not is a number, so the number has to
-be in the HTML. The script left in the page filters and expands rows that are
-already there; it never writes a figure. The data is still embedded beside the
-markup, between the same kind of marker, because the tooltips read from it.
-
-site/template.html is the source and the only page file edited by hand. What
-this writes into docs/ is a build artifact, and anything typed into one is lost
-on the next run: index.html, sitemap.xml, llms.txt and og.png. robots.txt,
-favicon.svg and CNAME are hand-written, favicon.ico is drawn by
-site/make_favicon.py, and nothing here touches any of them.
-
-Run it in the same job that produced the snapshots, never on its own
-schedule: a site rebuilt separately is a site that can quietly publish
-yesterday's numbers while looking current.
-
+Usage:
     python site/build_site.py
 """
 
@@ -53,18 +31,14 @@ OUTPUT = DOCS / "index.html"
 SITEMAP = DOCS / "sitemap.xml"
 LLMS = DOCS / "llms.txt"
 OG_IMAGE = DOCS / "og.png"
-# The chart the same run drew. Published next to the page as og.png rather than
-# linked from the repository, so a link preview does not depend on a second
-# host; see og_card for why it is not copied as drawn.
+# Published next to the page as og.png (see og_card).
 CHART = ROOT / "analysis" / "charts" / "skill_frequency.png"
 
 SITE_URL = "https://dedata.dev/"
 REPO_URL = "https://github.com/atakrk/de-jobs-pipeline"
 RAW_URL = "https://raw.githubusercontent.com/atakrk/de-jobs-pipeline/main"
 
-# Several organisations are already called dedata, and a search for the name
-# finds them rather than this. The title carries the subject so that a search
-# for the subject can land here; the name is only what it lands on.
+# The title carries the subject, since the name alone is taken by others.
 TITLE = "DEdata — Data Engineering Jobs in Germany: Skills & Salaries"
 
 AUTHOR = {
@@ -81,16 +55,13 @@ AUTHOR = {
 
 SOURCES = {"arbeitsagentur": "Bundesagentur für Arbeit", "arbeitnow": "Arbeitnow"}
 
-# How many rows a list shows before "show all". Written onto the element, so
-# the page script reads the number rather than repeating it.
+# Rows shown before "show all".
 TOP_SKILLS = 15
 TOP_CITIES = 12
 
 SLOT = re.compile(r"<!-- SLOT:([a-z-]+) -->")
 
-# Which columns are numbers. Everything else stays a string, and an empty cell
-# stays null rather than becoming zero -- a suppressed median is not a salary of
-# nothing, and the site has to be able to tell those apart.
+# Numeric columns. Empty cells stay null, not zero.
 NUMERIC = {
     "postings", "postings_with_text", "pct_of_postings",
     "postings_with_salary", "median_salary_from", "median_salary_to",
@@ -108,11 +79,7 @@ MARTS = [
     "mart_pipeline_funnel",
 ]
 
-# Marts the page can do without. A mart added today does not exist in the
-# snapshots taken before it, and requiring it would drop every one of those
-# days -- so the series the site is built to show would be erased on the
-# morning a new table was added, and rebuilt only after enough runs had
-# passed. The page says what it has no data for instead.
+# May be missing from older snapshots; those days are still kept.
 OPTIONAL_MARTS = {"mart_pipeline_funnel"}
 
 
@@ -133,10 +100,7 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def read_day(day_dir: Path) -> dict | None:
-    """One day's marts, or None if the run did not produce the required ones.
-
-    Optional marts are skipped rather than fatal: see OPTIONAL_MARTS.
-    """
+    """One day's marts, or None if a required one is missing."""
     day = {}
     for mart in MARTS:
         path = day_dir / f"{mart}.csv"
@@ -149,13 +113,7 @@ def read_day(day_dir: Path) -> dict | None:
 
 
 def read_freshness_days(project: Path) -> int | None:
-    """How long a posting keeps counting after it was last seen.
-
-    Read from the pipeline's own dbt_project.yml rather than repeated here.
-    The site states this number in prose, and a site that says seven while the
-    models use fourteen is worse than a site that says nothing -- so it is read
-    from the one place that decides it, or left out entirely.
-    """
+    """posting_freshness_days from dbt_project.yml, or None if not found."""
     if not project.exists():
         return None
     match = re.search(r"^\s*posting_freshness_days:\s*(\d+)\s*$",
@@ -187,11 +145,10 @@ def compile_data(snapshots: Path, freshness_days: int | None = None) -> dict:
         "latest_date": dates[-1],
         "first_date": dates[0],
         "days_tracked": len(dates),
-        # The denominator. Read from the data rather than restated, so the page
-        # cannot drift from it.
+        # The denominator, read from the data.
         "postings": overall(latest)["postings"],
         "latest": latest,
-        # Only what a trend needs, so the page stays small as days accumulate.
+        # Only what the trend needs.
         "history": [
             {
                 "date": d,
@@ -208,8 +165,7 @@ def compile_data(snapshots: Path, freshness_days: int | None = None) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Formatting. These match what the page script prints in its tooltips, so a
-# figure reads the same in the markup and on hover.
+# Formatting (matches the page script's tooltips).
 # ---------------------------------------------------------------------------
 
 def number(n: int | float) -> str:
@@ -249,7 +205,7 @@ def script_json(value: object) -> str:
 
 
 def ranked_skills(latest: dict) -> list[dict]:
-    # Stable, so tied tools keep the order the snapshot has them in.
+    # Stable sort: ties keep snapshot order.
     return sorted(latest["skill_frequency"], key=lambda s: -s["pct_of_postings"])
 
 
@@ -258,10 +214,7 @@ def named(skill: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# The sentences. The lede, the meta description, the dataset description and
-# llms.txt all state the same headline figures, so they are built from the same
-# rows here rather than each phrased by hand -- a hand-written "Azure leads"
-# would stay written the morning it stopped being true.
+# Generated sentences, shared by the lede, meta description, dataset and llms.txt.
 # ---------------------------------------------------------------------------
 
 def lede(data: dict) -> str:
@@ -287,7 +240,7 @@ def lede(data: dict) -> str:
         else:
             parts.append(f"Among cloud platforms: {listing([named(s) for s in clouds])}.")
     if german["pct_requires_german"] is not None:
-        # "At least": only an explicit phrase counts, so this is a floor.
+        # A floor: only explicit phrases count.
         parts.append(
             f"At least {pct(german['pct_requires_german'])} state a German-language "
             "requirement."
@@ -348,8 +301,7 @@ def structured_data(data: dict) -> dict:
         "@context": "https://schema.org",
         "@graph": [
             {
-                # What lets a search result say "DEdata" rather than the domain,
-                # and tie it to a person rather than to the other dedatas.
+                # Site name and author for search results.
                 "@type": "WebSite",
                 "@id": SITE_URL + "#website",
                 "name": "DEdata",
@@ -371,8 +323,7 @@ def structured_data(data: dict) -> dict:
                 "url": SITE_URL,
                 "creator": {"@id": AUTHOR["@id"]},
                 "isAccessibleForFree": True,
-                # No license: the repository does not state one, and this does
-                # not get to state one for it.
+                # No license: the repo doesn't state one.
                 "dateModified": data["latest_date"],
                 "temporalCoverage": f"{data['first_date']}/{data['latest_date']}",
                 "spatialCoverage": {"@type": "Place", "name": "Germany"},
@@ -443,9 +394,7 @@ def kpis(data: dict) -> str:
         ("Tools tracked", fmt(len(latest["skill_frequency"])), "#sec-salary", False),
         ("Cities hiring", fmt(len(latest["city_stats"])), "#sec-cities", False),
     ]
-    # The freshness tile carries the dot alone, by design decision. The date it
-    # stands for is on its label here and in the masthead stamp; the page script
-    # turns the label into an age, which only the reader's clock can know.
+    # Freshness dot; the page script turns its label into an age.
     built = esc(f"Figures from {day(data['latest_date'])}")
     html = []
     for label, value, href, pulse in tiles:
@@ -468,7 +417,7 @@ def chips(latest: dict) -> str:
         f'{esc("all tools" if c == "all" else c)}</button>'
         for c in categories
     )
-    # Hidden until the script that makes them do something has run.
+    # Hidden until the page script runs.
     return f'<div class="chips" id="chips" hidden>{buttons}</div>'
 
 
@@ -500,8 +449,7 @@ def language(latest: dict) -> dict[str, str]:
         ("s2", english, "English, no German required", "var(--series-2)"),
         ("s3", neither, "Neither stated", "var(--neutral)"),
     ]
-    # A value is printed inside its segment only where it fits; every segment
-    # is named in the legend regardless, so identity never rests on colour.
+    # Values inside segments only where they fit; the legend names all of them.
     split = "".join(
         f'<div class="seg {cls}" style="width:{value or 0}%" '
         f'title="{esc(name)} — {pct(value)}">'
@@ -534,9 +482,7 @@ def funnel(latest: dict) -> dict[str, str]:
     first = stages[0]["records"] or 1
     html = []
     for i, s in enumerate(stages):
-        # Where the grain changes, say so on its own line. Everything above it
-        # counts a posting once per run it appeared in; everything below counts
-        # a posting once. Without this the collapse reads as a filter.
+        # Mark where the grain changes, so the collapse doesn't read as a filter.
         if i > 0 and s["grain"] != stages[i - 1]["grain"]:
             html.append(f'<div class="unit-break"><div class="lbl">one row per '
                         f'{esc(s["grain"])}</div><hr></div>')
@@ -609,12 +555,7 @@ def salary_table(latest: dict) -> str:
 
 
 def fill(page: str, slots: dict[str, str]) -> str:
-    """Put each slot's markup where the template names it.
-
-    A slot the template names and the build does not fill would publish a blank
-    where a figure belongs, and one the build fills that the template has lost
-    is a figure that silently stopped appearing. Both stop the build.
-    """
+    """Fill template slots. Fails on unfilled, unused or repeated slots."""
     found = SLOT.findall(page)
     unfilled = sorted(set(found) - slots.keys())
     unused = sorted(slots.keys() - set(found))
@@ -655,8 +596,7 @@ def render_page(data: dict, image_size: tuple[int, int]) -> str:
 # ---------------------------------------------------------------------------
 
 def sitemap(data: dict) -> str:
-    # lastmod is the run the figures come from, not the day this ran: a rebuild
-    # on the same data did not change what the page says.
+    # lastmod is the data's run date, not the build date.
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
@@ -666,12 +606,7 @@ def sitemap(data: dict) -> str:
 
 
 def llms_txt(data: dict) -> str:
-    """The headline figures as plain text, for tools that read rather than render.
-
-    Every rate is printed with the count it came from and the caveats the page
-    carries, because this is the version most likely to be quoted without the
-    page around it.
-    """
+    """Headline figures as plain text, with counts and caveats."""
     latest = data["latest"]
     german = overall(latest)
 
@@ -774,13 +709,7 @@ OG_SIZE = (1200, 630)
 
 
 def og_card(chart: Path, out: Path) -> None:
-    """The chart, fitted whole inside a link-preview card.
-
-    Copied as drawn it is 1620x1152, and a large preview crops that to about
-    2:1 around its middle -- which takes the chart's title and its top bars,
-    the part that says what it is. Fitted inside the card on its own background
-    colour, all of it survives.
-    """
+    """Fit the whole chart inside a link-preview card so previews don't crop it."""
     width, height = OG_SIZE
     margin = 24
     with Image.open(chart) as source:

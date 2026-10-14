@@ -1,20 +1,7 @@
 """Ingest job postings from the Bundesagentur für Arbeit Jobsuche API.
 
-This is Germany's official federal job database and the largest single source
-of German vacancies. Spec: https://github.com/bundesAPI/jobsuche-api
-
-What the gateway actually accepts, established by sweeping the combinations
-in scripts/probe_auth.py rather than trusting the docs:
-
-  * ``/pc/v6/jobs`` answers; the v4 paths return 403 for every client.
-  * ``X-API-Key: jobboerse-jobsuche`` is required and sufficient. The OAuth
-    client-credentials flow the documentation describes is not needed, and
-    its token endpoint answers 403 regardless.
-  * The User-Agent is irrelevant, despite the 403 carrying Vary: User-Agent.
-
-v6 returns its results in ``ergebnisliste``; v4 used ``stellenangebote``. We
-accept either, because pinning the success check to one field name is exactly
-what made a working endpoint look dead.
+Spec: https://github.com/bundesAPI/jobsuche-api. Only /pc/v6/jobs with the
+X-API-Key header works (see scripts/probe_auth.py); no OAuth needed.
 
 Usage:
     python ingest/arbeitsagentur.py --max-pages 2
@@ -49,9 +36,7 @@ PAGE_SIZE = 100
 
 SEARCH_PATHS = ["/pc/v6/jobs", "/pc/v4/app/jobs", "/pc/v4/jobs"]
 
-# The listing carries no posting text, and the text is where tool names live.
-# The detail path has moved between versions and the id may or may not be
-# base64-encoded, so resolve both against a real posting instead of assuming.
+# Posting text is only in the detail endpoint; path and id encoding are probed.
 DETAIL_PATHS = [
     "/pc/v6/jobdetails/{code}",
     "/pc/v4/jobdetails/{code}",
@@ -59,9 +44,9 @@ DETAIL_PATHS = [
 ]
 ID_FIELDS = ["referenznummer", "refnr", "hashId"]
 
-# Field carrying the postings array, newest naming first.
+# Postings array key, newest naming first (v6, then v4).
 RESULT_KEYS = ["ergebnisliste", "stellenangebote"]
-# Field carrying the total match count, ditto.
+# Total match count key.
 TOTAL_KEYS = ["maxErgebnisse", "maxErgebnisseGesamt", "gesamtAnzahl"]
 
 
@@ -167,17 +152,9 @@ def cached_detail_config() -> tuple[str, bool] | None:
 def resolve_detail_url(
     session: requests.Session, sample_id: str
 ) -> tuple[str, bool] | None:
-    """Return (path_template, encode_base64) that returns a posting detail.
+    """Return (path_template, encode_base64) for the detail endpoint.
 
-    Probing all six combinations costs five failed requests before the
-    working one, every run, to rediscover an answer the last run already
-    wrote down. So try the cached answer first -- but *verify* it with one
-    real request rather than trusting it.
-
-    Caching without verification would be the worse bug: the endpoint moves,
-    the cached path keeps being used, every detail request fails, and the run
-    reports zero descriptions with nothing in the log explaining why. One
-    request is a cheap price for the cache being self-correcting.
+    Tries the path cached in the last manifest first, verified with one request.
     """
     cached = cached_detail_config()
     if cached:
@@ -273,12 +250,8 @@ def main() -> None:
         reported[term] = total
         postings_seen += term_count
 
-        # A search cut off by --max-pages is a sample, not the market. Every
-        # posting past the cap goes unseen, and once it has been unseen for
-        # the freshness window the models read it as withdrawn -- nothing
-        # downstream can tell the two apart, so it is said here and recorded.
-        # Only a cap that was actually reached counts: the API's total is an
-        # estimate, and a short last page means the list simply ended.
+        # Warn when --max-pages cut the term off; postings past the cap would
+        # later look withdrawn.
         if total is not None and term_count < total and len(pages) == args.max_pages:
             truncated.append(term)
             log.warning("%s: fetched %d of %d reported; --max-pages %d cuts it off, "
@@ -287,14 +260,8 @@ def main() -> None:
 
     unique_ids = list(dict.fromkeys(ids))
 
-    # Shuffle before --detail-limit truncates. Ids arrive in search-term
-    # order, so taking the first n takes one search term's results almost
-    # exclusively -- and those terms differ in how tool-dense they are, which
-    # skews every downstream percentage in the same direction. A limit that
-    # truncates an ordered list is a sampling decision, not a throttle.
-    #
-    # Seeded by run date so a re-run of the same day fetches the same subset
-    # and the run stays reproducible.
+    # Shuffle before --detail-limit truncates (a sampling decision, recorded in
+    # the manifest). Seeded by run date so reruns pick the same subset.
     random.Random(directory.name).shuffle(unique_ids)
 
     details_written = 0

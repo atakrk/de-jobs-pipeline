@@ -1,14 +1,7 @@
 """Load raw JSON runs into Postgres.
 
-Reads everything under data/raw/<source>/<run_date>/ and upserts it into the
-``raw`` schema. Nothing is reshaped: the JSON goes in as jsonb exactly as the
-API returned it, and every interpretation of it happens later in dbt.
-
-Reruns are safe. The grain is (source_id, run_date), so loading the same day
-twice updates in place rather than duplicating.
-
-Reading the run directory lives in load/rows.py, shared with the Databricks
-loader. This file is only the Postgres writer.
+Upserts data/raw/<source>/<run_date>/ into the raw schema as untouched jsonb.
+INSERT ... ON CONFLICT DO UPDATE on (source_id, run_date) keeps reruns idempotent.
 
 Usage:
     python load/load_raw.py

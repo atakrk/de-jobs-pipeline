@@ -1,8 +1,6 @@
 """Create the raw tables without loading anything into them.
 
-`dbt docs generate` builds its catalog by reading column types from real
-relations, so the models have to exist -- but they do not have to contain
-anything. The documentation describes the schema, not the rows.
+Used for `dbt docs generate`, which needs the relations but not the rows.
 
 Usage:
     python load/create_schema_only.py

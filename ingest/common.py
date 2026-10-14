@@ -1,9 +1,7 @@
 """Shared helpers for the ingest scripts.
 
-Every ingest writes untouched API responses to
-``data/raw/<source>/<run_date>/page_XXXX.json`` plus a ``_manifest.json``
-describing the run. Nothing is cleaned here on purpose: the raw layer is the
-audit trail, and every later stage must be reproducible from it.
+Raw API responses are written untouched to data/raw/<source>/<run_date>/,
+plus a _manifest.json for the run. No cleaning here; mapping happens in dbt.
 """
 
 from __future__ import annotations
@@ -26,17 +24,8 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 
 REQUEST_DELAY_SECONDS = float(os.getenv("REQUEST_DELAY_SECONDS", "0.5"))
 MAX_PAGES = int(os.getenv("MAX_PAGES", "40"))
-# The federal search terms, in code rather than in the environment. They were
-# an environment variable with a default, and the laptop's .env named three
-# terms while the daily job, which sets nothing, searched one. Both wrote to
-# the same warehouse. Postings only the laptop's wider search could find were
-# counted until they had gone unseen for seven days, then aged out together --
-# 202 of them in one morning, 22 of 25 sampled still advertised. The terms
-# decide what a posting's absence means, so there is one list, and a run that
-# wants another says so with --terms, which the manifest records.
-#
-# "data engineering" was one of the three. It matches over two thousand
-# postings, mostly other roles, and would not fit the page cap either.
+# Search terms live in one list in code, not in .env, so every run searches the
+# same thing. Override with --terms (recorded in the manifest).
 SEARCH_TERMS = ["data engineer", "analytics engineer"]
 
 logging.basicConfig(
@@ -73,11 +62,7 @@ def get_json(
     params: dict[str, Any] | None = None,
     max_retries: int = 4,
 ) -> dict[str, Any] | None:
-    """GET with exponential backoff. Returns None when the page is unusable.
-
-    Returning None instead of raising keeps a single bad page from throwing
-    away every page already fetched in this run.
-    """
+    """GET with exponential backoff. Returns None instead of raising on a bad page."""
     delay = 1.0
     for attempt in range(1, max_retries + 1):
         try:

@@ -1,21 +1,14 @@
-# Ranges rather than hard pins: the binary wheels available differ per
-# Python version and platform, and a hard pin silently excludes the
-# machine you are sitting at. Upper bounds keep major versions honest.
+# Ranges, not hard pins: available wheels differ per Python version and platform.
 requests>=2.32,<3
 python-dotenv>=1.0,<2
 psycopg[binary]>=3.2.4,<4
 pandas>=2.2,<3
 matplotlib>=3.9,<4
-# Imported directly by site/, for the link-preview card and the favicon. It
-# arrives with matplotlib; named for the same reason as the connector below.
+# Used directly by site/ (it also comes with matplotlib).
 pillow>=10.1,<13
 dbt-postgres>=1.8,<2
 
-# The daily run builds here. Postgres above stays for local work, the docs
-# job and the fixture gate, so both adapters are installed everywhere rather
-# than split across requirement files nobody keeps in step.
+# Both adapters installed everywhere, instead of separate requirement files.
 dbt-databricks>=1.8,<2
-# Imported directly by load/load_raw_databricks.py and analysis/warehouse.py.
-# It arrives with dbt-databricks anyway; naming it means a direct import does
-# not rest on somebody else's dependency choice.
+# Imported directly by the Databricks loader and analysis/warehouse.py.
 databricks-sql-connector>=4.0,<5

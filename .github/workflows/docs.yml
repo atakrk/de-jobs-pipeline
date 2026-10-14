@@ -1,17 +1,8 @@
 name: docs
 
-# The lineage graph describes the project's structure, and structure only
-# changes when the dbt project changes -- not when today's postings differ
-# from yesterday's. Regenerating it daily would commit a 700KB manifest every
-# morning for no reason: hundreds of megabytes a year to republish a graph
-# that did not move.
-#
-# So this runs on changes to the dbt project instead. It still needs a
-# database, because `dbt docs generate` reads column types from the warehouse.
-#
-# It publishes under docs/models/, not docs/. The dashboard owns docs/index.html
-# now, and this job stages only the paths it produces -- `git add docs` would
-# sweep in a page it did not build and cannot rebuild.
+# dbt docs, regenerated only when the dbt project changes.
+# Needs a database because docs read column types from the warehouse.
+# Publishes under docs/models/; docs/index.html belongs to the dashboard.
 
 on:
   push:
@@ -68,9 +59,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # The catalog reads column types from real relations, so the models have
-      # to exist. Building them empty is enough and takes seconds: the schema
-      # is what the docs describe, not the rows.
+      # Docs need column types, so build the models empty.
       - name: Create empty relations
         working-directory: dbt
         run: |
@@ -86,13 +75,8 @@ jobs:
           cp target/index.html target/manifest.json target/catalog.json ../docs/models/
           touch ../docs/.nojekyll
 
-      # dbt's page is titled "dbt Docs", weighs 1.8 MB, and is half of what a
-      # crawler finds on the domain -- a maintainer's tool competing with the
-      # dashboard for the same searches. Its canonical, "/overview/", was a
-      # relative path that only meant something at dbt's own URL, and here
-      # resolves to a 404. So the canonical goes and a noindex goes in, and the
-      # step fails rather than publishing a page that quietly kept neither.
-      # GNU sed: the runner is Ubuntu.
+      # Strip the broken canonical and add noindex; fail if either didn't apply.
+      # GNU sed (Ubuntu runner).
       - name: Keep the model docs out of search results
         run: |
           page=docs/models/index.html

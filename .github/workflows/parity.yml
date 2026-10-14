@@ -1,28 +1,14 @@
 name: parity
 
-# The models are single-source across Postgres and Databricks, which is only
-# worth something if the two engines actually agree. A green `dbt build` does
-# not show that: every dialect rewrite compiles, and a wrong one returns
-# different rows rather than an error.
-#
-# scripts/compare_targets.py answers this on real data, but it cannot run here.
-# Production holds thirty days on Databricks and a CI Postgres holds one run,
-# so the two would be compared on different inputs and every difference would
-# be the data. The fixture is the only input both engines can be given
-# identically -- rows chosen to hit the expressions that are easy to get wrong,
-# not to look like a realistic sample.
-#
-# It used to run on every change to the models or the dialect macros. Since
-# the daily run moved back to Postgres, Databricks is optional, and a check
-# that needs a workspace which may be switched off would turn every model
-# change red for a reason unrelated to the change. Run it by hand when a
-# dialect macro changes and the workspace is up.
+# Builds the same fixture on Postgres and Databricks and diffs the output.
+# A wrong dialect rewrite still compiles, so only a diff catches it.
+# Manual only, since Databricks is optional. Run it when a dialect macro changes.
 
 on:
   workflow_dispatch:
 
 concurrency:
-  # The fixture truncates what it writes to; two runs at once would interleave.
+  # The fixture truncates its tables, so never run two at once.
   group: databricks-parity
   cancel-in-progress: false
 
@@ -73,9 +59,7 @@ jobs:
           DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
           DATABRICKS_CATALOG: ${{ secrets.DATABRICKS_CATALOG }}
-          # Named here rather than defaulted in code, so that reading this file
-          # is enough to see that the job cannot reach production. The fixture
-          # truncates what it writes to, and `raw` holds real runs.
+          # fixture_* schemas, so it can't touch the real tables.
           RAW_SCHEMA: fixture_raw
           DATABRICKS_SCHEMA: fixture
         run: python scripts/fixture.py --target databricks --load --dump /tmp/databricks

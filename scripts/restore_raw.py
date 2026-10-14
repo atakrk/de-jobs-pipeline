@@ -1,33 +1,8 @@
-"""Put the last thirty days of raw responses back on the runner.
+"""Restore the last N days of raw-<run_date> artifacts into data/raw.
 
-The daily job builds into a Postgres service container, which GitHub creates
-empty and destroys when the job ends. On its own that makes every published
-figure one morning's sample: the models ask for the latest run per posting and
-the newest description ever fetched for it, and a one-day database has nothing
-to choose between. That is why the schedule moved to Databricks, which kept
-thirty days. It moved back when the free workspace stopped accepting loads:
-from 5 October every morning ingested, kept its responses, and failed at the
-load.
-
-The history it needed was never in the warehouse anyway. Every daily run has
-uploaded its untouched responses as a `raw-<run_date>` artifact since
-29 September, for ninety days. The raw layer is defined as reproducible from
-the JSON on disk, so this restores the JSON and lets the ordinary loader
-rebuild the warehouse from it each morning. Thirty days is the same window the
-Databricks loader pruned to, for the same reason: the models need history to
-outlive one posting, not more.
-
-Rules:
-  - A run date already on disk is left alone. Today's ingest is fresher than
-    any artifact of today, and a rerun of the same morning must not be
-    overwritten by its own earlier copy.
-  - When a date has several artifacts (a manual rerun), the newest wins.
-  - Expired artifacts are skipped; they cannot be downloaded.
-  - A failure to list artifacts fails the job. Building on today alone would
-    publish a dataset that shrank overnight and look healthy doing it.
-
-Needs GITHUB_TOKEN with actions:read and GITHUB_REPOSITORY (owner/repo), both
-set by the workflow.
+CI Postgres starts empty, so history comes from these artifacts. Dates already
+on disk (today's run) are never overwritten; the newest artifact per date wins;
+failing to list artifacts fails the job. Needs GITHUB_TOKEN and GITHUB_REPOSITORY.
 
 Usage:
     python scripts/restore_raw.py --days 30
@@ -144,9 +119,7 @@ def main() -> None:
             log.info("%s  would restore artifact %s (%d bytes)",
                      run_date, artifact["id"], artifact["size_in_bytes"])
             continue
-        # The zip endpoint redirects to blob storage; requests drops the
-        # Authorization header on the cross-host hop, which is what that
-        # signed URL expects.
+        # Redirects to signed blob storage; requests drops the auth header there.
         response = session.get(artifact["archive_download_url"], timeout=300)
         response.raise_for_status()
         files = extract(response.content, RAW_DIR)
@@ -159,8 +132,7 @@ def main() -> None:
     log.info("window %s .. %s: %d restored, %d already on disk, %d dates with no run",
              since, until, restored, skipped, len(missing))
     if missing:
-        # Not an error: a day the ingest failed, or before artifacts existed.
-        # Logged so a gap in the published series has a visible cause.
+        # Not an error (failed ingest or no artifact yet), just logged.
         log.info("no run for: %s", ", ".join(missing))
 
 

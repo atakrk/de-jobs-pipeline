@@ -1,49 +1,29 @@
 name: daily
 
-# The point of running this on a schedule is not the data alone. It is that
-# dbt's tests run every morning against a live third-party API. If the source
-# changes shape -- a renamed field, a moved endpoint, an auth change -- the
-# build goes red and says so, instead of the numbers quietly drifting.
-#
-# It builds into a Postgres service container, which GitHub creates empty and
-# destroys when the job ends. Built from one morning alone, every published
-# figure would be one morning's sample -- the README once swung from 633
-# postings to 411 overnight because the sample moved, not the market. So
-# before loading, the job restores the last thirty days of raw responses from
-# the artifacts earlier runs kept, and the warehouse is rebuilt from them.
-#
-# From 13 September to 4 October this built into Databricks instead, which
-# kept the thirty days itself. From 5 October the load into the free workspace
-# failed every morning, after the ingest had succeeded and the responses had
-# been kept -- the second outage in three weeks. A free tier that can switch
-# off is not a production dependency, and the artifacts already held
-# everything the warehouse did. The
-# Databricks target, loader and parity check stay in the repo and run by hand.
+# Daily run: dbt tests hit the live APIs every morning, so source changes show up as a red build.
+# Builds into a Postgres service container that starts empty, so the last 30 days are restored first.
+# Databricks was the target until its free workspace kept failing; it's now optional, run by hand.
 
 on:
   schedule:
-    # 05:40 UTC. Not on the hour: GitHub's scheduler is busiest then and
-    # delays cron jobs accordingly.
+    # 05:40 UTC, off the hour when GitHub's scheduler is busiest.
     - cron: "40 5 * * *"
   workflow_dispatch:
 
 concurrency:
-  # Never cancel-in-progress: a manual run started while the schedule is
-  # committing would otherwise kill the job that is pushing the results.
+  # Don't cancel a run that may be pushing results.
   group: daily
   cancel-in-progress: false
 
 permissions:
   contents: write
-  # Read by scripts/restore_raw.py to list and download earlier runs' raw
-  # artifacts.
+  # For scripts/restore_raw.py to download earlier raw artifacts.
   actions: read
 
 jobs:
   pipeline:
     runs-on: ubuntu-latest
-    # The ingest is most of it: a one-second delay between requests to a
-    # public API, for about a thousand detail pages.
+    # Mostly the ingest: 1s delay per request, ~1000 detail pages.
     timeout-minutes: 60
 
     services:
@@ -62,24 +42,20 @@ jobs:
           --health-retries 10
 
     env:
-      # Gentler than the local default: this is someone else's public service
-      # and nobody is waiting on the result.
+      # Gentler than local; it's a public API and nobody is waiting.
       REQUEST_DELAY_SECONDS: "1.0"
       PGHOST: localhost
       PGPORT: 5433
       PGDATABASE: jobs
       PGUSER: jobs
       PGPASSWORD: jobs
-      # Read by analysis/warehouse.py, so the three analysis steps do not each
-      # have to be told where the marts were built.
+      # Read by analysis/warehouse.py.
       WAREHOUSE_TARGET: postgres
 
     steps:
       - uses: actions/checkout@v7
         with:
-          # Check out the branch, not the triggering commit. A re-run of an
-          # older run would otherwise land on a detached HEAD behind main and
-          # fail at the push.
+          # Branch, not the triggering commit, so re-runs can still push.
           ref: main
 
       - uses: actions/setup-python@v7
@@ -90,43 +66,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      # --max-pages has to exceed what the terms match, not merely approach it.
-      # A posting past the cap is not seen, and after posting_freshness_days
-      # unseen it is counted as withdrawn. "data engineer" matched 923 on
-      # 2026-09-18 -- ten pages of a hundred -- so ten would have started
-      # truncating within days. Twenty is headroom; the ingest warns and
-      # records it in the manifest if a term is cut off anyway.
-      #
-      # --detail-limit sits above the ~940 distinct postings the two terms
-      # return (1,160 rows; they overlap), so a new posting has its text the
-      # day it first appears.
+      # Limits sit above what the search terms return, so nothing gets truncated.
       - name: Ingest
         run: |
           python ingest/arbeitsagentur.py --max-pages 20 --with-details --detail-limit 1200
           python ingest/arbeitnow.py --max-pages 5
 
-      # The raw JSON lives on this runner and nowhere else until it is
-      # uploaded, and the runner is destroyed when the job ends. From 20 to 28
-      # September the Databricks workspace was deactivated: every morning the
-      # ingest succeeded, the load failed, and the day's responses were thrown
-      # away with the machine. Nine runs, unrecoverable, because both APIs
-      # answer with what is advertised now and never with what was advertised
-      # then.
-      #
-      # So the responses are kept before anything downstream can fail. Ninety
-      # days, the most GitHub allows. These artifacts are now also the
-      # warehouse's history: the restore step below rebuilds thirty days from
-      # them every morning, and they are how the scheduled runs reach a laptop.
-      #
-      # continue-on-error, because a backup that can stop the load would lose
-      # the day it exists to protect. The step still shows red on the run.
-      #
+      # Raw responses are uploaded as artifacts (90 days) before anything downstream can fail.
+      # continue-on-error so the backup never blocks the load.
       # To fetch a run date locally:
       #   gh run download <run-id> -n raw-<run_date> -D data/raw
       #   python load/load_raw.py --run-date <run_date>
       - name: Name the run date
         id: run
-        # The ingest's own default: date.today() on a runner that is UTC.
+        # Same as the ingest default (UTC).
         run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
       - name: Keep the raw responses
@@ -134,20 +87,14 @@ jobs:
         continue-on-error: true
         with:
           name: raw-${{ steps.run.outputs.date }}
-          # Relative to data/raw, so the download lands back in the layout the
-          # loaders read: data/raw/<source>/<run_date>/.
+          # Downloads land back in data/raw/<source>/<run_date>/.
           path: data/raw/
           retention-days: 90
           if-no-files-found: error
-          # A rerun of the same morning replaces that morning's copy.
+          # A rerun replaces that day's copy.
           overwrite: true
 
-      # Thirty days, the window the Databricks loader used to prune to: the
-      # models ask for the latest run per posting and the newest description
-      # ever fetched, and neither reaches past the life of a posting. Today's
-      # run is already on disk and is not overwritten. A failure to list the
-      # artifacts fails the job rather than publishing one morning as if it
-      # were the month.
+      # The container starts empty, so restore the last 30 days of raw artifacts.
       - name: Restore the last thirty days
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -162,9 +109,7 @@ jobs:
           dbt seed --profiles-dir .
           dbt build --profiles-dir .
 
-      # The site is rebuilt here, in the job that produced the data, and has no
-      # schedule of its own. A separately scheduled site is one that can
-      # publish yesterday's numbers while looking current.
+      # The site is rebuilt here, so it never shows stale numbers.
       - name: Export snapshot, charts, README figures and the site
         run: |
           python analysis/export_snapshot.py

@@ -1,10 +1,6 @@
 """Ingest job postings from the Arbeitnow job board API.
 
-Free, no authentication, JSON. Its value here is not volume but overlap:
-having a second source is what makes deduplication a real problem, and
-deduplication is where most of the engineering in this project lives.
-
-Docs: https://www.arbeitnow.com/blog/job-board-api
+Free, no auth. Docs: https://www.arbeitnow.com/blog/job-board-api
 
 Usage:
     python ingest/arbeitnow.py
@@ -53,8 +49,7 @@ def main() -> None:
     file_index = 0
     postings_seen = 0
 
-    # The board is paginated but not searchable, so we pull the feed and
-    # filter later in dbt. Cheap to do, and it keeps the raw layer honest.
+    # Not searchable, so pull the whole feed and filter in dbt.
     for page in range(1, args.max_pages + 1):
         payload = get_json(session, BASE_URL, params={"page": page})
         if payload is None:

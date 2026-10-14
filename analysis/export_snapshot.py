@@ -1,15 +1,6 @@
 """Write the marts out as dated CSVs.
 
-The snapshots are the published time series. They began as a workaround -- a
-CI Postgres was created and destroyed with the job, so a single run could not
-hold history and git had to. The daily run now restores thirty days of raw
-responses before it builds, so the warehouse holds history again, but the
-snapshots stay: they are small, they are diffable, and they outlive that
-window.
-
-One reader, two connections, the same shape the loaders use. Which marts are
-read and how they are written must not depend on where they were built, or the
-two paths drift and the CSVs stop being comparable across the change.
+The snapshots are the published time series and outlive the 30-day raw window.
 
 Usage:
     python analysis/export_snapshot.py
@@ -53,8 +44,7 @@ def main() -> None:
     with conn, conn.cursor() as cur:
         for mart in MARTS:
             cur.execute(f"select * from {marts}.{mart}")
-            # Indexed rather than by name: psycopg returns Column objects and
-            # the Databricks connector returns plain tuples.
+            # By index: works for both drivers.
             columns = [c[0] for c in cur.description]
             rows = cur.fetchall()
 

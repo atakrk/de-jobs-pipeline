@@ -1,34 +1,13 @@
--- Audit of the reduction from raw postings to int_postings.
---
--- int_postings drops roughly a thousand rows and the README reports numbers
--- built on what survives. This splits the loss into its causes, shows what
--- deduplication actually merged, and measures what adding city to the dedup
--- key would change -- so each trade stops being an assumption.
---
+-- Where rows are lost on the way to int_postings, what dedup merged,
+-- and what adding city to the dedup key would change.
 --   psql -U jobs -d jobs -f analysis/dedup_audit.sql
---
--- Section 1 selects mart_pipeline_funnel rather than recomputing it, and the
--- sections after it read int_postings_scored -- the model int_postings
--- filters -- rather than rebuilding scope from staging. They ask questions
--- the marts do not answer, but the answer to "which rows are in scope" is not
--- one of them.
---
--- The version before this one repeated the scope rule four times and all four
--- had drifted from the model: still admitting `country is null` after the
--- model stopped, still joining details on run_date after the model stopped.
--- Consolidating them into one temp view made that one reconstruction instead
--- of four, which was better and still wrong -- the copy went stale again the
--- morning the title pattern grew an exclusion list, and an audit of the scope
--- filter that predates the scope filter is worse than no audit, because it
--- reads as a second opinion. There is now no copy to go stale.
+-- Scope comes from the flags in int_postings_scored, not a copy of the rules.
 
 \set ON_ERROR_STOP on
 
 create temp view audit_scope as
 
--- Funnel stage 5, latest_snapshot: the newest run of every posting that is in
--- scope and established as German. The flags come from the model; nothing
--- here decides what in scope means.
+-- Funnel stage 5 (latest_snapshot), using the model's flags.
 select posting_id, source, run_date, title, employer, city, country
 from analytics_intermediate.int_postings_scored
 where title_in_scope
@@ -128,9 +107,7 @@ limit 20;
 \echo ' and splitting it would count the same text twice in the skill rates)'
 
 with latest_detail as (
-    -- Newest description ever fetched, matching int_postings. Joining on
-    -- run_date instead is the bug that made most of this section undecidable:
-    -- details are sampled, so the latest listing run often has none.
+    -- Newest description ever fetched, as in int_postings (details are sampled).
     select distinct on (posting_id) posting_id, description
     from analytics_staging.stg_arbeitsagentur__details
     order by posting_id, run_date desc

@@ -1,41 +1,14 @@
 {#
-    Cross-database dialect helpers.
-
-    This project runs on Postgres locally and on Databricks in the cloud. The
-    two platforms disagree about three things the models depend on: how JSON
-    is read, how a case-insensitive regex is written, and how a word boundary
-    is spelt. The obvious answer -- a second copy of the models -- means every
-    future change has to be made twice, and the two copies drift. Drift is the
-    failure mode this project keeps finding, so the disagreements live here
-    instead and the models stay single-source.
-
-    Two rules for anything added here:
-
-      1. It must behave identically on both platforms, not merely compile on
-         both. A macro that emits valid SQL with different semantics is worse
-         than no macro, because nothing will fail.
-      2. An unknown adapter raises rather than falling through to a default.
-         A silent Postgres fallback on a third platform would produce a
-         plausible-looking build that is wrong.
+    Per-platform SQL differences (Postgres, Databricks) live here so the models stay single-source.
+    Each macro must behave the same on both, and raises on an unknown adapter.
 #}
 
 
 {#
-    Read a text value out of a JSON payload.
-
-    Path is a single key, or a list of keys and array indexes:
-
+    Text value from a JSON payload. Path is a key or a list of keys/indexes:
         {{ json_text('payload', 'firma') }}
-          postgres:   payload ->> 'firma'
-          databricks: get_json_object(payload, '$.firma')
-
         {{ json_text('payload', ['stellenlokationen', 0, 'adresse', 'ort']) }}
-          postgres:   payload -> 'stellenlokationen' -> 0 -> 'adresse' ->> 'ort'
-          databricks: get_json_object(payload, '$.stellenlokationen[0].adresse.ort')
-
-    Both return NULL for a missing key, and both return the scalar unquoted --
-    Postgres because the last step uses ->> rather than ->, Databricks because
-    get_json_object strips the quotes from a JSON string.
+    NULL for a missing key; scalars come back unquoted.
 #}
 {% macro json_text(column, path) -%}
     {%- set segments = [path] if path is string else path -%}
@@ -53,12 +26,7 @@
 {%- endmacro %}
 
 
-{#
-    Length of a JSON array, or NULL when the key is absent.
-
-    Postgres jsonb_array_length and Databricks json_array_length agree on both
-    the answer and the null behaviour, so only the extraction differs.
-#}
+{# Length of a JSON array, NULL when the key is absent. #}
 {% macro json_array_len(column, path) -%}
     {%- set segments = [path] if path is string else path -%}
     {%- if target.type == 'postgres' -%}
@@ -82,11 +50,7 @@
 {%- endmacro %}
 
 
-{#
-    Case-sensitive regex match. Postgres ~ and Databricks rlike are both
-    "find anywhere in the string", so anchors and quantifiers carry over
-    unchanged; only word boundaries differ, and those have their own macros.
-#}
+{# Case-sensitive regex match (find anywhere). #}
 {% macro match(column, pattern) -%}
     {%- if target.type == 'postgres' -%}
         {{ column }} ~ '{{ pattern }}'
@@ -98,10 +62,7 @@
 {%- endmacro %}
 
 
-{#
-    Case-insensitive regex match. Postgres has a dedicated operator;
-    Databricks has none, so the flag goes inside the pattern.
-#}
+{# Case-insensitive regex match. #}
 {% macro imatch(column, pattern) -%}
     {%- if target.type == 'postgres' -%}
         {{ column }} ~* '{{ pattern }}'
@@ -114,14 +75,8 @@
 
 
 {#
-    Case-insensitive match wrapped in word boundaries, which is what keeps
-    'sql' out of 'postgresql' and 'r' out of every German word on the page.
-
-    Postgres uses POSIX \m (start of word) and \M (end of word); Java, which
-    is what Databricks compiles to, has only the symmetric \b. They agree on
-    every pattern in this project, all of which start and end on a word
-    character. A pattern starting or ending with punctuation would not be
-    equivalent, and does not belong here.
+    Case-insensitive match with word boundaries ('sql' must not match 'postgresql').
+    Postgres \m/\M vs Java \b: equal only for patterns that start and end on a word character.
 #}
 {% macro imatch_word(column, pattern) -%}
     {%- if target.type == 'postgres' -%}
@@ -135,13 +90,8 @@
 
 
 {#
-    Same, but the pattern is a SQL expression rather than a literal -- a
-    column, typically, when the patterns are themselves rows in a table.
-
-    ignore_case defaults to false because two of the three callers compare
-    text that both sides have already put through norm(). It has to be
-    explicit either way: a case-sensitive match against raw posting text
-    would silently return fewer rows rather than fail.
+    Word-boundary match where the pattern is a SQL expression (e.g. a column).
+    ignore_case defaults to false; most callers compare norm()'d text.
 #}
 {% macro match_word_expr(column, pattern_sql, ignore_case=false) -%}
     {%- if target.type == 'postgres' -%}
@@ -155,15 +105,8 @@
 
 
 {#
-    Case-sensitive match against a pattern built by a SQL expression, with no
-    boundaries added -- for the caller that needs an anchor rather than a word
-    edge, such as "this place name is where the location text begins".
-
-    Build pattern_sql with concat(), which both platforms spell the same, and
-    keep backslashes out of it: Postgres reads '\s' in a literal as two
-    characters and Spark reads it as an escape, which is exactly the
-    difference imatch_word exists to hide. A space written as a space needs
-    no escaping on either.
+    Match against a pattern built in SQL, no boundaries added (for anchors).
+    Build it with concat() and avoid backslashes; the platforms escape them differently.
 #}
 {% macro match_expr(column, pattern_sql) -%}
     {%- if target.type == 'postgres' -%}
@@ -176,11 +119,7 @@
 {%- endmacro %}
 
 
-{#
-    End-of-word boundary, for embedding inside a literal pattern where only
-    one alternative needs bounding. 'bi' must not match inside 'bild', but
-    'data' is deliberately allowed to match inside 'database'.
-#}
+{# End-of-word boundary for use inside a literal pattern. #}
 {% macro word_end() -%}
     {%- if target.type == 'postgres' -%}\M
     {%- elif target.type == 'databricks' -%}\\b
@@ -190,9 +129,7 @@
 {%- endmacro %}
 
 
-{#
-    Unix epoch seconds (as text) to a date.
-#}
+{# Unix epoch seconds (as text) to a date. #}
 {% macro epoch_to_date(expression) -%}
     {%- if target.type == 'postgres' -%}
         to_timestamp(cast({{ expression }} as bigint))::date
@@ -204,16 +141,7 @@
 {%- endmacro %}
 
 
-{#
-    Advertised salary.
-
-    Postgres will accept a bare `numeric` and store anything; Spark will not,
-    and a scale has to be chosen somewhere. Choosing it here rather than
-    letting each platform default keeps the two builds comparable, and pins
-    the choice next to the reason: these are annual euro figures, so twelve
-    digits with two decimals is more headroom than any real posting needs and
-    an implausible value fails loudly instead of being stored.
-#}
+{# Salary type: annual euro figures, numeric(12, 2) on both platforms. #}
 {% macro type_money() -%}
     {%- if target.type == 'postgres' -%}
         numeric(12, 2)
@@ -225,16 +153,7 @@
 {%- endmacro %}
 
 
-{#
-    A timestamp with no timezone attached.
-
-    Postgres `timestamp` is a wall-clock reading. Spark's `TIMESTAMP` is an
-    instant interpreted through the session timezone, so the same cast returns
-    a value that shifts with a session setting the source never mentioned --
-    the federal API states a local time and no offset. `TIMESTAMP_NTZ` is the
-    type that means what Postgres means, and pinning it keeps the two builds
-    comparable rather than coincidentally equal in UTC.
-#}
+{# Timestamp without timezone (timestamp_ntz on Databricks); the source gives local time. #}
 {% macro type_timestamp() -%}
     {%- if target.type == 'postgres' -%}
         timestamp
@@ -246,14 +165,7 @@
 {%- endmacro %}
 
 
-{#
-    Whole days between two dates, as `later - earlier`.
-
-    Postgres subtracts dates directly and returns an integer; Spark rejects the
-    operator and wants datediff. Used by the freshness window, where getting
-    the sign or the unit wrong silently changes how many postings are counted
-    rather than failing.
-#}
+{# Whole days between two dates, `later - earlier`. #}
 {% macro days_between(later, earlier) -%}
     {%- if target.type == 'postgres' -%}
         ({{ later }} - {{ earlier }})

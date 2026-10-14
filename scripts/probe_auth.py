@@ -1,10 +1,8 @@
-"""Find the request shape the Jobsuche gateway actually accepts.
+"""Sweep header/auth combinations against the Jobsuche API and print a matrix.
 
-The gateway answers 403 with an empty body and a ``Vary: User-Agent``
-header, which says the client identifier is what it discriminates on.
-Rather than guess one at a time, sweep the combinations and print a
-matrix. Throwaway diagnostic - delete once the answer is known.
+Throwaway diagnostic.
 
+Usage:
     python scripts/probe_auth.py
 """
 

@@ -1,16 +1,5 @@
--- What the scope filter removes, and what non-German rows survive it.
---
--- The funnel audit showed the scope filter drops far more rows than dedup
--- merges. This asks whether that loss is correct, from both ends: the title
--- pattern is entirely English against a German job database, so it may drop
--- roles it should keep -- and `data` is unbounded, so it kept roles it should
--- have dropped until the exclusion list was added.
---
--- It reads title_in_scope from int_postings_scored rather than re-spelling
--- the pattern. The earlier version pasted the regex in four places; when the
--- pattern grew an exclusion list, all four would have gone on reporting the
--- old rule under the new rule's name.
---
+-- What the scope filter drops, and which non-German rows survive.
+-- Reads title_in_scope from int_postings_scored instead of copying the pattern.
 --   psql -U jobs -d jobs -f analysis/dropped_audit.sql
 
 \echo ''

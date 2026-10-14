@@ -1,10 +1,5 @@
 {#
-    Uniqueness over more than one column.
-
-    dbt's built-in `unique` takes a single column and dbt_utils is not a
-    dependency this project wants. Written as a generic test so the grain of a
-    model is declared beside the column it starts with, rather than hidden in a
-    file under tests/ that nobody reads while editing the model.
+    Generic test: uniqueness over several columns (avoids dbt_utils).
 
         - name: posting_id
           tests:

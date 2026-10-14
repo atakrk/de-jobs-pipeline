@@ -1,47 +1,6 @@
--- Resolve a country for the second source, which never states one.
---
--- Three outcomes, and the third is deliberate:
---   DEUTSCHLAND - a known German place name appears in the location text
---   FOREIGN     - an explicit non-German country or capital appears
---   null        - "Remote", "Europe - Remote", or empty: genuinely unknown
---
--- An explicit foreign marker beats a city match, so "Frankfurt, USA" would
--- not slip through on the strength of the word Frankfurt.
---
--- Unknown stays unknown rather than being assumed German. Assuming is what
--- put London and Paris inside figures reported as the German market.
---
--- It also names the city, where one city can be named. Until it did, the
--- second source's location text went into the city table verbatim: Berlin
--- appeared six times -- "Berlin", "Berlin, Germany", "Berlin, Berlin,
--- Deutschland" and so on -- and "Munich" sat beside München as a separate
--- city. The rule is narrower than the country rule, on purpose. A posting
--- gets a city only when
---
---   - its location text begins with a known German place, and
---   - no other known place appears anywhere in it.
---
--- Anywhere-in-the-text was measured first and rejected. It resolved
--- "Mainz oder Berlin" and "Frankfurt/Düsseldorf" to one city each -- the one
--- the place list happened to know -- and "Achim (bei Bremen)" and "Garching b.
--- München" to cities they are not in. The place list is only as complete as
--- the federal postings that built it, so one match anywhere is not evidence
--- of one city. A match where the text starts is. "Berlin; Munich; Remote" is
--- several cities and gets none: publishing it under whichever came first
--- would be a choice the source never made.
---
--- Over every run in the warehouse on 2026-09-29, 2,783 of 3,000 German
--- posting-runs resolve. The other 217 -- "Hamburg, München, Düsseldorf,
--- remote", "Berlin; Munich", and text like "Berlin Office" or "Hybrid/München"
--- that does not begin with the place -- keep a null city and are counted as
--- Unknown in the city table rather than guessed. Some of those are plainly
--- Berlin to a reader. The rule gives them up so that nothing it keeps is a
--- guess.
---
--- Grain is (posting_id, run_date), the same as the staging model it reads.
--- A board posting reappears every morning it is still listed, and its location
--- text can change between them, so resolving per run rather than per posting
--- is both correct and the only grain that joins cleanly downstream.
+-- Country and city for Arbeitnow postings from the location text. Grain: (posting_id, run_date).
+-- Country: FOREIGN if a foreign marker appears (wins), DEUTSCHLAND if a German place does, else null.
+-- City: only when the text starts with a German place and names no other one.
 
 with german_places as (
 
@@ -70,10 +29,8 @@ flagged as (
 
 ),
 
--- Every known place named anywhere in the location text, and whether the
--- text begins with it: the place, then optional spaces, then the end or a
--- separator. A hyphen separates only with spaces round it, because
--- "Leinfelden-Echterdingen" is one place.
+-- Places named in the text, and whether the text starts with one.
+-- A hyphen only separates with spaces ("Leinfelden-Echterdingen" is one place).
 place_matches as (
 
     select
@@ -90,8 +47,7 @@ place_matches as (
 
 ),
 
--- A place named only as part of a longer one is not a second place:
--- "frankfurt am main" contains "frankfurt", and that is one city.
+-- Drop places contained in a longer match ("frankfurt" in "frankfurt am main").
 distinct_places as (
 
     select m.*
@@ -148,8 +104,7 @@ select
         when has_foreign_marker   then 'FOREIGN'
         when matches_german_place then 'DEUTSCHLAND'
     end as resolved_country,
-    -- max() above is only read when exactly one city was named, so it picks
-    -- nothing; it is how an aggregate returns the one value there is.
+    -- max() above is only used when exactly one city was named
     case
         when not has_foreign_marker and places = 1 and begins_with_place = 1
             then city

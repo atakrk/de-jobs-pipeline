@@ -1,24 +1,8 @@
 """Load the same raw JSON runs into Databricks.
 
-The Postgres loader's counterpart. It reads the identical run directories
-through load/rows.py and lands the identical unflattened payloads, so the dbt
-models -- which are single-source across both platforms -- see the same bytes
-whichever warehouse they run against.
-
-Two things differ from the Postgres loader, and both come from Delta rather
-than from a preference:
-
-  payload is a STRING column holding the JSON text. See load/schema_databricks.sql.
-
-  There is no ON CONFLICT. Delta does not enforce primary keys, so a run date
-  is deleted before it is inserted. Reruns replace rather than duplicate,
-  which is the same guarantee the Postgres grain gives.
-
-Credentials come from the environment and are never logged:
-    DATABRICKS_HOST, DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN, DATABRICKS_CATALOG
-
-Unlike the Postgres loader this one prunes: the warehouse is written to daily
-and has to stay bounded. See prune() for the window and what it costs.
+Payload is stored as JSON text; no ON CONFLICT on Delta, so each run date is
+deleted then inserted. Also prunes old run dates. Env: DATABRICKS_HOST,
+DATABRICKS_HTTP_PATH, DATABRICKS_TOKEN, DATABRICKS_CATALOG.
 
 Usage:
     set -a; source .env; set +a
@@ -51,15 +35,9 @@ RAW_TABLES = [
     "arbeitnow_postings",
 ]
 
-# How many days of runs the warehouse keeps. See prune().
 RETAIN_DAYS = 30
 
-# The warehouse rejects a statement whose bound parameters exceed 1 MB in
-# total. Row count is a poor proxy for that -- one posting description runs to
-# several kilobytes and the next is a single line -- so batches are filled by
-# measured size, with headroom for the statement text around them. A row count
-# still caps the batch so a very large number of tiny rows cannot build an
-# unreasonable statement.
+# Bound parameters are capped at 1 MB per statement, so batch by size.
 PARAM_BUDGET_BYTES = 800_000
 MAX_BATCH_ROWS = 500
 
@@ -86,14 +64,7 @@ def raw_schema() -> str:
 
 
 def ensure_schema(cur, catalog: str, schema: str | None = None) -> None:
-    """Apply the schema file one statement at a time.
-
-    The connector takes a single statement per execute, so the file has to be
-    split. Comments come out before the split, not after: the file's prose
-    contains a semicolon, and splitting first leaves the remainder of that
-    comment line looking like a statement of its own. Only whole-line `--`
-    comments are recognised, which is all this file uses.
-    """
+    """Apply the schema file one statement at a time (whole-line `--` comments stripped first)."""
     text = SCHEMA_FILE.read_text("utf-8").format(
         catalog=catalog, schema=schema or raw_schema())
     body = "\n".join(
@@ -106,17 +77,12 @@ def ensure_schema(cur, catalog: str, schema: str | None = None) -> None:
 
 
 def param_bytes(row: tuple) -> int:
-    """What this row will contribute to the statement's parameter budget."""
+    """Approximate parameter size of a row in bytes."""
     return sum(len(str(value).encode("utf-8")) for value in row)
 
 
 def batches(rows: list[tuple]):
-    """Group rows into statements that stay inside the parameter limit.
-
-    A row larger than the budget on its own is still yielded alone rather than
-    silently dropped: it will fail, and an error naming one oversized posting
-    is worth more than a load that quietly skipped it.
-    """
+    """Group rows into batches under the parameter limit. Oversized rows go alone."""
     batch: list[tuple] = []
     size = 0
     for row in rows:
@@ -133,15 +99,7 @@ def batches(rows: list[tuple]):
 
 def replace_run(cur, table: str, columns: list[str], rows: list[tuple],
                 run_date: str, source_filter: str | None = None) -> int:
-    """Delete this run date, then insert it.
-
-    The delete runs even when there are no rows, so a run that legitimately
-    returned nothing clears a previous load of the same date rather than
-    leaving it in place looking current.
-
-    loaded_at is appended here as current_timestamp() rather than passed in,
-    so no caller can forget it and no clock but the warehouse's is trusted.
-    """
+    """Delete this run date, then insert it. Deletes even when rows is empty."""
     where = "run_date = cast(? as date)"
     params: list = [run_date]
     if source_filter is not None:
@@ -162,22 +120,7 @@ def replace_run(cur, table: str, columns: list[str], rows: list[tuple],
 
 
 def prune(cur, catalog: str, retain_days: int) -> None:
-    """Drop run dates that have fallen out of the retention window.
-
-    This runs daily and accumulates, so it needs a bound. The models ask two
-    things of history: the latest run per posting, and the newest description
-    ever fetched for it. Neither reaches further back than the life of a
-    posting, so the window only has to outlive one -- thirty days does, with
-    room to spare.
-
-    The bound is real and accepted: a description fetched forty days ago is
-    gone, and a posting still listed today whose text was never re-fetched
-    inside the window reads as having no description. Widen the window rather
-    than work around that.
-
-    Not on the Postgres loader. The laptop database keeps the long history,
-    which is where a question about last month gets answered.
-    """
+    """Drop run dates older than the retention window. Postgres keeps everything."""
     raw = f"{catalog}.{raw_schema()}"
     cutoff = f"run_date < date_sub(current_date(), {int(retain_days)})"
 
@@ -201,7 +144,7 @@ def prune(cur, catalog: str, retain_days: int) -> None:
 
 
 def as_json(payload: dict) -> str:
-    """JSON text, unescaped. The German is stored as German."""
+    """JSON text without ASCII escaping."""
     return json.dumps(payload, ensure_ascii=False)
 
 

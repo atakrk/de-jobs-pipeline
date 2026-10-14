@@ -1,15 +1,7 @@
 """Regenerate the README's figures from the marts.
 
-The README is the deliverable, and its numbers were hand-typed while the
-charts beside them were regenerated daily. They disagreed within a day.
-
-The split this enforces: **numbers are generated, meaning is hand-written.**
-Everything between the FINDINGS markers is produced here from the marts.
-Everything outside them is prose a person wrote, and it is deliberately
-phrased without hard figures so it cannot rot the same way. Claims about
-ordering ("Power BI ranks above Spark") are the exception and do need an
-occasional human look -- they are structural rather than numeric, but they
-are not automatically true forever.
+Everything between the FINDINGS markers is generated; prose outside them is
+hand-written and avoids hard numbers.
 
 Usage:
     python analysis/update_readme.py
@@ -52,9 +44,7 @@ def build_block(cur, marts: str, intermediate: str) -> str:
     """)
     total_postings, run_count, first_run, last_run = cur.fetchone()
 
-    # Spelled inline rather than bound: `= any(%s)` is Postgres, the two
-    # connectors disagree on the placeholder, and CLOUDS is a constant in this
-    # file rather than anything a caller supplies.
+    # Inlined, not bound: placeholders differ per driver and CLOUDS is a constant.
     cloud_list = ", ".join(f"'{skill}'" for skill in CLOUDS)
     cur.execute(f"""
         select skill_key, display_name, postings, pct_of_postings
@@ -77,10 +67,7 @@ def build_block(cur, marts: str, intermediate: str) -> str:
     lines = [
         START,
         "",
-        # Not "the latest run". The warehouse accumulates, and int_postings
-        # keeps every posting still seen inside the freshness window -- so the
-        # published set spans several runs, and saying otherwise would publish
-        # a correct number under a false description.
+        # The published set spans several runs (freshness window), not just the latest.
         f"*Postings still being advertised across the {run_count} daily "
         f"{'run' if run_count == 1 else 'runs'} from {first_run} to "
         f"{last_run}. A posting leaves these figures once the sources stop "
@@ -113,9 +100,6 @@ def build_block(cur, marts: str, intermediate: str) -> str:
             "",
             "### What the published number is a share of",
             "",
-            # Generated, never typed. A funnel written by hand is a snapshot of
-            # the day someone wrote it, and this whole table exists because a
-            # number with no stages behind it cannot be debugged.
             "Stages in the order the pipeline applies them. The last row is the "
             "denominator above. Read the unit column: for the first stages a "
             "record is one posting on one day, because a vacancy listed all "
@@ -129,8 +113,7 @@ def build_block(cur, marts: str, intermediate: str) -> str:
             previous = "—" if of_previous is None else f"{of_previous}%"
             first = "—" if of_first is None else f"{of_first}%"
             if changes:
-                # Marked rather than silently footnoted: this is the largest
-                # fall in the table and the one that is not a filter at all.
+                # Grain change, not a filter: mark it.
                 collapse_stage = (stage.replace("_", " "), of_previous)
                 previous += " \*"
             lines.append(

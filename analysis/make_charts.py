@@ -1,8 +1,6 @@
 """Render the charts that go in the README.
 
-Reads the marts, writes PNGs to analysis/charts/. Deliberately single-theme:
-these are embedded in a README that renders on a light page, so the surface
-is fixed rather than left to inherit something unpredictable.
+Reads the marts, writes PNGs to analysis/charts/ (light theme only).
 
 Usage:
     python analysis/make_charts.py
@@ -27,8 +25,7 @@ from common import log  # noqa: E402
 
 OUT_DIR = Path(__file__).resolve().parent / "charts"
 
-# Chart chrome. One accent hue: nothing here encodes identity by colour except
-# the two-series language chart, so a second hue would be decoration.
+# Chart colours.
 SURFACE = "#fcfcfb"
 INK = "#0b0b0b"
 INK_SECONDARY = "#52514e"
@@ -95,16 +92,7 @@ def chart_skills(conn, marts: str) -> None:
 
 
 def chart_language(conn, marts: str) -> None:
-    """One population, three outcomes.
-
-    This chart used to compare the two sources side by side. That comparison
-    died when the second source was validated down to the postings actually
-    located in Germany -- about a dozen -- and a percentage over twelve rows
-    does not belong beside one over six hundred. What replaced it says more
-    anyway: of everything in the German market sample, how much states a
-    German requirement, how much mentions English without one, and how much
-    says nothing either way.
-    """
+    """Stacked bar: requires German / English only / neither, over all postings."""
     with conn.cursor() as cur:
         cur.execute(f"""
             select postings, requires_german, english_without_german
@@ -114,8 +102,7 @@ def chart_language(conn, marts: str) -> None:
         total, german, english = cur.fetchone()
 
     neither = total - german - english
-    # Label ink is chosen per segment: white reads on the two saturated
-    # fills and disappears on the neutral one.
+    # White labels on saturated fills, dark on the neutral one.
     parts = [
         ("Explicitly requires German", german, SERIES_1, "white"),
         ("Mentions English, no German requirement", english, SERIES_2, "white"),

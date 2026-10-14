@@ -1,5 +1,4 @@
--- Detail rows. The description is the whole point of this table: it is the
--- only field in the entire API that names the tools a job actually uses.
+-- Federal API detail rows. The description is the only field that names tools.
 
 with source as (
 

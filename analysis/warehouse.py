@@ -1,20 +1,9 @@
-"""One connection helper for everything that reads the marts.
+"""The one place that chooses the warehouse connection for scripts reading the marts.
 
-The models are single-source across Postgres and Databricks, and so is the
-loader's reader. The analysis scripts were the exception: three copies of the
-same `connect()`, each hardcoding `analytics_marts` in its SQL. Giving each of
-them a second connection path would have made that six.
+Credentials come from PG* or DATABRICKS_* env vars.
 
-So the choice of warehouse lives here, once. Callers ask for a connection and
-the schema to qualify the marts with, and nothing else about them changes --
-which is the point. A chart built from Databricks has to be the same chart.
-
+Usage:
     conn, marts = connect("databricks")
-    with conn, conn.cursor() as cur:
-        cur.execute(f"select * from {marts}.mart_skill_frequency")
-
-Postgres credentials come from PG*; Databricks from DATABRICKS_*, which are
-read from the environment and never from a file this code opens.
 """
 
 from __future__ import annotations
@@ -29,7 +18,7 @@ TARGETS = ["postgres", "databricks"]
 
 
 def add_target_argument(parser: argparse.ArgumentParser) -> None:
-    """The same flag, spelled the same way, in every script that reads marts."""
+    """Add the shared --target flag."""
     parser.add_argument(
         "--target", default=os.getenv("WAREHOUSE_TARGET", "postgres"),
         choices=TARGETS,
@@ -39,16 +28,7 @@ def add_target_argument(parser: argparse.ArgumentParser) -> None:
 
 
 def required_env(name: str) -> str:
-    """A missing credential should say which one.
-
-    Empty counts as missing: an unset GitHub secret interpolates to an empty
-    string rather than disappearing, and an empty hostname reaches the driver
-    as a URL it tries to negotiate OAuth against. The resulting error names
-    neither the variable nor the workflow.
-
-    load/load_raw_databricks.py keeps its own copy: load/ does not import from
-    analysis/, and one small function in each beats a dependency between them.
-    """
+    """Return an env var or exit naming it. Empty counts as missing (unset CI secrets)."""
     value = os.getenv(name)
     if not value:
         raise SystemExit(
@@ -59,11 +39,7 @@ def required_env(name: str) -> str:
 
 
 def connect(target: str, schema: str = MARTS_SCHEMA):
-    """A connection, and the qualified schema to read from.
-
-    Drivers are imported inside the branch so that running against one engine
-    does not require the other's driver to be installed.
-    """
+    """Return (connection, qualified schema). Drivers are imported lazily."""
     if target == "postgres":
         import psycopg
 

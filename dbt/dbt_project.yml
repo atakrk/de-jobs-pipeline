@@ -9,15 +9,10 @@ macro-paths: ["macros"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
 
-# How recently a posting must have been seen to count as currently advertised.
-# Deliberately separate from the warehouse retention window: retention is a
-# storage bound, this is a definition. See int_postings and CLAUDE.md.
+# Days since last seen for a posting to count as advertised (not the 30-day retention).
 vars:
   posting_freshness_days: 7
-  # Shortest description worth reading requirements from. Stub listings that
-  # only link elsewhere would otherwise count as postings with no tools named,
-  # understating every rate. Read by int_postings_scored.has_description and by
-  # the denominator mart_skill_frequency publishes against.
+  # Shorter descriptions are stubs and don't count as having text.
   description_min_chars: 200
 
 models:
@@ -35,23 +30,11 @@ models:
 seeds:
   de_jobs:
     +schema: seeds
-    # Rebuilt on every run rather than truncated and refilled. A seed that
-    # gains a column otherwise fails against the table the last run left --
-    # city_aliases did, and would have failed the next daily run and the
-    # parity gate, both of which build into schemas that already hold it. The
-    # seeds are a few dozen rows; recreating them costs nothing.
+    # Recreate seeds each run so an added column doesn't fail; they are tiny.
     +full_refresh: true
     skills:
-      # Pinned because seed types are inferred from the file: Postgres would
-      # size a varchar to the longest pattern present today, so adding a
-      # longer regex would stop being a one-line data change.
-      #
-      # The platform difference is spelled here rather than in
-      # macros/dialect.sql -- the one exception to that rule -- because
-      # dbt_project.yml is rendered without macros in scope. The lookup is a
-      # mapping rather than a conditional so an unknown adapter fails to
-      # render instead of silently taking the Postgres spelling, which is the
-      # same guarantee the dialect macros give by raising.
+      # Pin text types so a longer pattern doesn't overflow an inferred varchar.
+      # Spelled here, not in dialect.sql (no macros in this file); unknown adapter fails.
       +column_types:
         skill_key: &seed_text "{{ {'postgres': 'text', 'databricks': 'string'}[target.type] }}"
         display_name: *seed_text

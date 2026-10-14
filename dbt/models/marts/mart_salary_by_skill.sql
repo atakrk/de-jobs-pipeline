@@ -1,8 +1,5 @@
--- Advertised salary by tool.
---
--- Only a minority of postings state a salary at all, so postings_with_salary
--- is reported alongside every figure. A median over four postings is not a
--- market rate, and the column is there so nobody reads it as one.
+-- Advertised salary by tool. Few postings state a salary, so
+-- postings_with_salary is shown with every figure.
 
 with posting_skills as (
 

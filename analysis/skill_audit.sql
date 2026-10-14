@@ -1,10 +1,4 @@
--- Look at what the skill patterns actually matched.
---
--- The seed is a list of regexes run against free German prose. Word
--- boundaries stop 'sql' matching inside 'postgresql', but they do nothing
--- about a real German word that happens to equal a pattern. The only way to
--- know is to read the surrounding text.
---
+-- Spot-check skill matches for false positives by reading the context.
 --   psql -U jobs -d jobs -f analysis/skill_audit.sql
 
 \echo ''
@@ -31,11 +25,7 @@ limit 15;
 with sampled as (
     select
         s.skill_key,
-        -- substring(... from pattern) returns only the FIRST parenthesised
-        -- subexpression when the pattern has one. The alternation needs
-        -- grouping, so make it non-capturing and wrap the whole span in the
-        -- capture group instead -- otherwise this returns the bare keyword
-        -- and the surrounding text we actually wanted is discarded.
+        -- substring() returns the first capture group, so the keyword group is non-capturing.
         substring(
             lower(p.description)
             from ('(.{0,45}\m(?:' || s.pattern || ')\M.{0,45})')

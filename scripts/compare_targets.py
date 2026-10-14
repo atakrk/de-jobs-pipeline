@@ -1,24 +1,12 @@
 """Diff every mart between the Postgres build and the Databricks build.
 
-The models are single-source across both platforms, which is only worth
-anything if both platforms actually agree. A green `dbt build` does not show
-that: every dialect rewrite compiles, and a wrong one returns different rows
-rather than an error.
+Build both targets from the same raw data first. Exits non-zero on any diff.
 
-scripts/fixture.py answers the same question against synthetic rows chosen to
-hit each rewritten expression. This answers it against whatever is really
-loaded, which is where the two failures that mattered turned up -- a grain
-that only one platform's primary key was enforcing, and a dedup whose
-ordering was not a total order, so each engine kept a different city.
-
-Run it after building both targets from the same raw data:
-
+Usage:
     set -a; source .env; set +a
     cd dbt && dbt build --profiles-dir .
     dbt build --profiles-dir . --target databricks
     cd .. && python scripts/compare_targets.py
-
-Exits non-zero if any mart differs, so it can gate a change to a dialect macro.
 """
 
 from __future__ import annotations
@@ -39,12 +27,7 @@ MARTS = [
 
 
 def norm(value):
-    """One spelling per value, so a type difference is not read as a data one.
-
-    Postgres hands back Decimal where Databricks hands back float, and the two
-    print the same number differently. Trailing zeros are stripped for the same
-    reason: `55000.00` and `55000` are the same salary.
-    """
+    """Normalise Decimal/float/date values so both engines print the same."""
     if isinstance(value, Decimal):
         return f"{value.normalize():f}"
     if isinstance(value, float):
@@ -55,7 +38,7 @@ def norm(value):
 
 
 def sort_key(row):
-    """Total order over rows that may contain nulls, which do not compare."""
+    """Sort key that handles nulls."""
     return tuple((value is None, value or "") for value in row)
 
 

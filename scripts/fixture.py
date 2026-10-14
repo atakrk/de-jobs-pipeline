@@ -1,48 +1,12 @@
-"""A synthetic raw dataset, and a dump of every model built from it.
+"""Load synthetic raw rows, build the models, and dump each one to CSV for diffing.
 
-This exists because "it still builds" proves nothing about a rewrite. Every
-plausible way to express these models compiles, and a wrong one returns fewer
-rows rather than an error -- which is how the Databricks port would have
-shipped a silent change to the salary columns.
+Truncates the raw tables it writes to; use RAW_SCHEMA / DATABRICKS_SCHEMA to
+keep it away from real runs. Truncate again before reloading real data.
 
-So a port or a refactor is checked by building both versions against the same
-rows and diffing the output:
-
-    python scripts/fixture.py --load --dump /tmp/before   # on the old code
-    git stash                                             # or checkout the change
-    python scripts/fixture.py --dump /tmp/after
-    diff -r /tmp/before /tmp/after
-
-The rows are chosen to hit the expressions that are easy to get wrong, not to
-look like a realistic sample: nested and missing JSON keys, empty strings that
-must become null, epoch and boolean casts, a title that must match ("BI
-Spezialist") beside one that must not ("Bildredakteur", which is the whole
-reason 'bi' carries a word boundary the other alternatives do not), a posting
-outside Germany, one title per named scope exclusion, board locations that
-must and must not resolve to one city, an employer whose name contains 'data'
--- once where the role is off-topic and once where it is not -- and the same
-vacancy under two sources so deduplication has something to do.
-
-It also runs on either engine, which is what makes it usable as a CI gate.
-Once production holds thirty days on Databricks and a CI Postgres holds one,
-the two cannot be compared on real data -- different inputs. These rows are the
-only input both can be given identically.
-
+Usage:
     python scripts/fixture.py --load --dump /tmp/pg
     python scripts/fixture.py --target databricks --load --dump /tmp/db
     diff -r /tmp/pg /tmp/db
-
-This truncates the raw tables it writes to. Point it at the local Postgres or
-at a throwaway schema, never at one holding a real run -- RAW_SCHEMA and
-DATABRICKS_SCHEMA exist so the Databricks side can be sent somewhere harmless.
-
-Recovering the local Postgres afterwards takes a truncate, not just a reload:
-the loaders upsert, so re-running one leaves these synthetic rows sitting
-beside the real ones and every count three too high.
-
-    psql -c 'truncate raw.arbeitsagentur_postings, raw.arbeitsagentur_details,
-             raw.arbeitnow_postings, raw.ingest_runs'
-    python load/load_raw.py
 """
 
 from __future__ import annotations
@@ -63,8 +27,7 @@ RUN = "2026-09-12"
 RAW_TABLES = ["ingest_runs", "arbeitsagentur_postings",
               "arbeitsagentur_details", "arbeitnow_postings"]
 
-# (layer, table). The schema is <prefix>_<layer>, and the prefix moves with
-# DATABRICKS_SCHEMA so a fixture build can be sent away from production.
+# (layer, table); schema is <prefix>_<layer>.
 MODELS = [
     ("staging", "stg_ingest_runs"),
     ("staging", "stg_arbeitsagentur__postings"),
@@ -136,11 +99,7 @@ AG_POSTINGS = [
         "stellenangebotsTitel": "Data Warehouse Entwickler", "firma": "Epsilon SE",
         "datumErsteVeroeffentlichung": "2026-09-05",
     }),
-    # Named exclusions. Each is a category the bare `data` pattern admitted --
-    # a building, a compliance role, a salesperson, a degree place -- and each
-    # is here so the parity gate exercises the alternation rather than just
-    # the happy path. A dialect that spells one of these differently returns
-    # more rows, not an error.
+    # Named scope exclusions: each must be dropped.
     ("ag6", "data engineer", {
         "stellenangebotsTitel": "Data Center Operations Engineer (m/w/d)",
         "firma": "Iota GmbH",
@@ -165,10 +124,7 @@ AG_POSTINGS = [
         "stellenlokationen": [address("Essen", "45127", "NRW", "DEUTSCHLAND")],
         "datumErsteVeroeffentlichung": "2026-09-06",
     }),
-    # The employer prefixes its own name onto the title, so 'data' matches the
-    # company rather than the role. ag10 must drop; ag11 must survive, because
-    # a flat exclusion on the company name is a false negative that looks
-    # exactly like that employer not advertising.
+    # 'data' in the employer name: ag10 must drop, ag11 must survive.
     ("ag10", "data engineer", {
         "stellenangebotsTitel": "NTT DATA Deutschland SE: AI Solution Architect (w/m/x)",
         "firma": "NTT DATA Deutschland SE",
@@ -191,16 +147,12 @@ AG_DETAILS = [
              "istArbeitnehmerUeberlassung": True}),
     ("ag3", {"stellenangebotsBeschreibung": DESC_STUB}),
     ("ag4", {"stellenangebotsBeschreibung": DESC_EN}),
-    # ag11 is the only one of the exclusion rows that survives, so it is the
-    # only one that needs text to be read for skills.
+    # ag11 is the only surviving exclusion row, so only it needs text.
     ("ag11", {"stellenangebotsBeschreibung": DESC_EN}),
 ]
 
-# One manifest per (source, run_date), as the loaders write them. rows_read and
-# duplicates_collapsed are the loader's own counts -- the grain is applied in
-# load/rows.py, before the insert -- and they are the funnel's first stage.
-# Deliberately larger than the rows below, so the drop from stage 1 to stage 2
-# is a number the diff would notice if the grain stopped collapsing anything.
+# One manifest per (source, run_date). rows_read is deliberately larger than the
+# rows below so the funnel's first drop is visible.
 INGEST_RUNS = [
     ("arbeitsagentur", {"source": "arbeitsagentur", "results_key": "ergebnisliste",
                         "rows_read": 12, "duplicates_collapsed": 1}),
@@ -224,22 +176,20 @@ AN_POSTINGS = [
     ("an4", {"title": "Data Engineer (m/w/d)", "company_name": "Muster GmbH",
              "description": DESC_EN, "location": "Berlin", "remote": False,
              "url": "https://example.invalid/4", "created_at": "1788912000"}),
-    # City resolution. an5 is an exonym and must land in ag2's row of the city
-    # table -- München, BAYERN -- not in a row of its own called Munich.
+    # Exonym: must resolve to München, not a separate Munich row.
     ("an5", {"title": "Data Platform Engineer", "company_name": "Nu GmbH",
              "description": DESC_EN, "location": "Munich, Germany", "remote": False,
              "url": "https://example.invalid/5", "created_at": "1788912000"}),
-    # Several cities: German, and in no single one of them.
+    # Several cities: German, no single city.
     ("an6", {"title": "Analytics Engineer (m/w/d)", "company_name": "Xi AG",
              "description": DESC_EN, "location": "Berlin; Munich; Remote",
              "remote": True, "url": "https://example.invalid/6",
              "created_at": "1788912000"}),
-    # A known place that the text does not begin with. German, no city.
+    # Known place not at the start: German, no city.
     ("an7", {"title": "BI Engineer", "company_name": "Omikron GmbH",
              "description": DESC_EN, "location": "Remote / Köln", "remote": True,
              "url": "https://example.invalid/7", "created_at": "1788912000"}),
-    # Wien is a place the federal source reports -- for ag4, in Austria. It
-    # must not make a posting German.
+    # Wien (Austria) must not make a posting German.
     ("an8", {"title": "Data Analyst (m/w/d)", "company_name": "Pi GmbH",
              "description": DESC_EN, "location": "Wien", "remote": False,
              "url": "https://example.invalid/8", "created_at": "1788912000"}),
@@ -264,7 +214,7 @@ def qualify(target: str, schema: str) -> str:
 
 
 def connect(target: str):
-    """A connection and its placeholder, which the two drivers spell apart."""
+    """Return (connection, placeholder) for the target."""
     if target == "postgres":
         import psycopg
 
@@ -297,9 +247,7 @@ def load(target: str) -> None:
     conn, ph = connect(target)
     with conn, conn.cursor() as cur:
         if target == "databricks":
-            # Reuse the loader's applier rather than re-splitting the file: it
-            # already knows that a semicolon inside a comment is not the end of
-            # a statement.
+            # Reuse the loader's schema applier.
             from load_raw_databricks import ensure_schema
 
             ensure_schema(cur, os.getenv("DATABRICKS_CATALOG", "workspace"))
@@ -310,8 +258,7 @@ def load(target: str) -> None:
             cur.execute(f"truncate table {raw}.{table}")
 
         def clause(columns: list[str]) -> str:
-            """Delta has no column defaults: loaded_at is NOT NULL and an
-            INSERT that omits it is rejected, where Postgres fills it in."""
+            """Delta has no column defaults, so add loaded_at explicitly."""
             names, values = list(columns), [ph] * len(columns)
             if target == "databricks":
                 names.append("loaded_at")
@@ -358,18 +305,14 @@ def dump(target: str, out: Path) -> None:
         for layer, table in MODELS:
             schema = qualify(target, f"{prefix}_{layer}")
             cur.execute(f"select * from {schema}.{table}")
-            # By position: psycopg returns Column objects, the Databricks
-            # connector returns tuples.
+            # By position: works for both drivers.
             columns = [d[0] for d in cur.description]
             lines = ["|".join(columns)]
             rendered = [
                 ["NULL" if v is None else str(v).replace("\n", " ") for v in row]
                 for row in cur.fetchall()
             ]
-            # Sorted on every column, not on the first. Ordering by one column
-            # leaves ties to the engine, and int_posting_skills has several
-            # rows per posting -- which showed up as a diff with no difference
-            # in it the first time these two dumps were compared.
+            # Sort on every column so ties don't depend on the engine.
             for row in sorted(rendered):
                 lines.append("|".join(row))
             (out / f"{table}.csv").write_text("\n".join(lines) + "\n", "utf-8")

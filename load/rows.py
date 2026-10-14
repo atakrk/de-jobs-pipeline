@@ -1,12 +1,6 @@
-"""Turn a run directory into rows, without knowing where they are going.
+"""Read a run directory into rows. Shared by the Postgres and Databricks loaders.
 
-The project now loads the same raw JSON into two places: Postgres locally and
-Databricks in the cloud. Reading the run directory is identical for both, and
-a second copy of that logic would drift from the first the moment the ingest
-output changes shape -- so the reading lives here and each loader only writes.
-
-Nothing is reshaped in this module. A row's payload is the object exactly as
-the API returned it; every interpretation of it happens later in dbt.
+Payloads are kept exactly as the API returned them; mapping happens in dbt.
 """
 
 from __future__ import annotations
@@ -37,24 +31,11 @@ class RunRows:
 
     @property
     def posting_duplicates(self) -> int:
-        """Posting rows the grain collapsed.
-
-        Reported separately from `duplicates`, which also counts details. The
-        funnel measures postings, and a stage that silently included detail
-        rows would show a drop that is not a drop.
-        """
+        """Posting rows the grain collapsed (unlike `duplicates`, excludes details)."""
         return self.postings_read - self.posting_count
 
     def load_manifest(self) -> dict:
-        """The run's own manifest, plus what only the loader can know.
-
-        The ingest manifest records what the API answered. How many of those
-        rows were the same posting arriving again is not visible until the
-        grain is applied, and the grain is applied here -- so the first stage
-        of mart_pipeline_funnel cannot be recovered from the warehouse without
-        this. It is written into raw.ingest_runs.manifest, which is therefore
-        the ingest manifest augmented rather than a copy of the file on disk.
-        """
+        """The ingest manifest plus row counts before/after dedupe (for the funnel)."""
         return {
             **(self.manifest or {}),
             "rows_read": self.postings_read,
@@ -77,20 +58,7 @@ def posting_id(posting: dict) -> str | None:
 def dedupe(rows: list[tuple]) -> list[tuple]:
     """Collapse rows sharing (source_id, run_date), keeping the last.
 
-    A run legitimately reads the same posting more than once. The federal API
-    is queried once per search term, and a posting matching two of them comes
-    back under each -- about a fifth of a day's rows -- while both boards also
-    repeat a posting across a page boundary.
-
-    Postgres has been absorbing this invisibly: the raw tables carry a primary
-    key on (source_id, run_date) and the loader upserts, so the last write won
-    and every published figure has always been over distinct postings. Delta
-    enforces no primary key, so the same files landed 463 rows heavier on
-    Databricks and took every downstream count with them.
-
-    The grain is a property of the data, not of one platform's constraint, so
-    it is enforced here, where both loaders read. Last wins, because that is
-    what ON CONFLICT DO UPDATE did -- this changes no Postgres result.
+    Done here because Delta has no primary key; last wins, like ON CONFLICT DO UPDATE.
     """
     collapsed: dict[tuple, tuple] = {}
     for row in rows:
@@ -110,9 +78,7 @@ def read_run(source: str, run_dir: Path) -> RunRows:
         blob = json.loads(page_file.read_text("utf-8"))
 
         if source == "arbeitsagentur":
-            # The manifest records which key this endpoint answered with;
-            # assuming one of them is how a working endpoint got logged as
-            # broken once already.
+            # Use the results key the ingest recorded.
             key = blob.get("results_key", "ergebnisliste")
             for posting in blob["payload"].get(key) or []:
                 found = posting_id(posting)

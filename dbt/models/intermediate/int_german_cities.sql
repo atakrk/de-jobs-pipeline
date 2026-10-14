@@ -1,26 +1,6 @@
--- A reference list of German place names, derived from the federal database.
---
--- The second source states no country, only free-text location, so something
--- has to decide whether "Dusseldorf" and "Manchester" belong in a dataset
--- about Germany. Rather than hand-maintain a list or call a geocoder, we use
--- the place names the federal job database itself reports -- tens of
--- thousands of postings across the country. The dataset validates itself.
---
--- Only places the federal source itself puts in Germany. It also lists
--- Austrian vacancies, and for a while their towns were on this list too --
--- Linz, Wels, Wiener Neudorf, a place called "Österreich" -- so a board
--- posting located only in "Linz" would have been counted as German. It
--- happened twice ("Deutschland, Österreich, Schweiz und Italien"), neither
--- published, and it would have got worse once this list started naming
--- cities rather than only vouching for a country.
---
--- Names shorter than four characters are excluded: they false-match inside
--- longer words too easily. Names carrying punctuation beyond hyphen and dot
--- are excluded because they are interpolated into a regex downstream.
---
--- Each name carries the spelling and the federal state to publish it under,
--- so a board posting in "Munich, Germany" and a federal one in München land
--- in the same row of the city table instead of two.
+-- German place names taken from federal postings with country = DEUTSCHLAND,
+-- plus aliases (e.g. Munich -> München). Used to place Arbeitnow locations.
+-- Short names and names with regex-unsafe punctuation are dropped.
 
 with federal as (
 
@@ -36,11 +16,7 @@ with federal as (
 
 ),
 
--- One spelling and one state per normalised name: the one the federal source
--- uses most. Ties fall through to md5 of the spelling rather than the
--- spelling itself, because these names carry umlauts and the two engines are
--- not obliged to sort non-ASCII text the same way. A hex digest sorts the
--- same under any collation.
+-- Most common spelling and state per name. Ties break on md5 so both engines agree.
 federal_canonical as (
 
     select city_norm, city, region
@@ -57,12 +33,8 @@ federal_canonical as (
 
 ),
 
--- An exonym resolves to the German name it stands for, and takes that name's
--- state where the federal source knows it. An exonym the federal source has
--- never listed still counts as German, with no state asserted for it.
--- Selected into its own CTE rather than aliased where it is joined. `dbt run
--- --empty`, which the docs job uses, renders a ref as an aliased subquery, and
--- a second alias written after it is a syntax error on Postgres.
+-- Aliases map to the German name and take its state if known.
+-- Own CTE because `dbt run --empty` breaks on an aliased ref.
 aliases as (
 
     select alias, city from {{ ref('city_aliases') }}

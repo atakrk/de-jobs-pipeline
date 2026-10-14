@@ -1,11 +1,6 @@
--- What each ingest run fetched, as columns.
---
--- Two of these fields are written by the loader rather than by the ingest:
--- how many posting rows it read, and how many of them the (source_id,
--- run_date) grain collapsed. Neither is recoverable downstream, because the
--- collapse happens in load/rows.py before anything reaches the warehouse --
--- so the first stage of mart_pipeline_funnel would otherwise have to be taken
--- on trust, and a funnel whose first number cannot be checked is decoration.
+-- One row per ingest run, manifest fields as columns.
+-- rows_read and duplicates_collapsed come from the loader (load/rows.py);
+-- they feed the first stage of mart_pipeline_funnel.
 
 with source as (
 
