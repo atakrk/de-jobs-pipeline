@@ -2,73 +2,73 @@
 
 > What data engineering job postings in Germany ask for: tools, German-language requirements, cities and advertised salaries. Counted every morning from two public job APIs. Open source; every figure traces to a committed daily snapshot.
 
-Figures from the run of 27 October 2026, tracked daily since 11 September 2026. Every percentage is a share of the 388 currently advertised postings that carried a description to read.
+Figures from the run of 28 October 2026, tracked daily since 11 September 2026. Every percentage is a share of the 385 currently advertised postings that carried a description to read.
 
 ## Tools named in postings
 
 A posting counts once per tool, however often it names it.
 
-- Python (language): 62.4% (242 of 388)
-- ETL / ELT (concept): 58.2% (226 of 388)
-- SQL (language): 58.0% (225 of 388)
-- Azure (cloud): 33.0% (128 of 388)
-- Data Lake / Lakehouse (concept): 23.2% (90 of 388)
-- AWS (cloud): 22.7% (88 of 388)
-- Spark (processing): 20.4% (79 of 388)
-- Data Warehouse (concept): 20.1% (78 of 388)
-- Databricks (platform): 19.3% (75 of 388)
-- Power BI (bi): 17.5% (68 of 388)
-- Snowflake (warehouse): 17.5% (68 of 388)
-- SAP (platform): 15.2% (59 of 388)
-- Airflow (orchestration): 14.7% (57 of 388)
-- dbt (transformation): 14.7% (57 of 388)
-- Kubernetes (platform): 13.1% (51 of 388)
-- Docker (platform): 12.1% (47 of 388)
-- Kafka (streaming): 11.9% (46 of 388)
-- Java (language): 10.8% (42 of 388)
-- Terraform (platform): 10.8% (42 of 388)
-- Google Cloud (cloud): 10.3% (40 of 388)
-- PostgreSQL (database): 9.5% (37 of 388)
-- Microsoft Fabric (platform): 9.3% (36 of 388)
-- Azure Data Factory (orchestration): 7.2% (28 of 388)
-- Dagster (orchestration): 5.2% (20 of 388)
-- Oracle (database): 5.2% (20 of 388)
-- SQL Server (database): 4.6% (18 of 388)
-- Scala (language): 4.4% (17 of 388)
-- Flink (streaming): 4.1% (16 of 388)
-- BigQuery (warehouse): 3.9% (15 of 388)
-- Tableau (bi): 3.9% (15 of 388)
-- Azure Synapse (warehouse): 3.1% (12 of 388)
-- MongoDB (database): 2.1% (8 of 388)
-- Redshift (warehouse): 2.1% (8 of 388)
-- Looker (bi): 1.3% (5 of 388)
+- Python (language): 63.1% (243 of 385)
+- SQL (language): 58.2% (224 of 385)
+- ETL / ELT (concept): 57.4% (221 of 385)
+- Azure (cloud): 32.2% (124 of 385)
+- AWS (cloud): 23.6% (91 of 385)
+- Data Lake / Lakehouse (concept): 23.1% (89 of 385)
+- Data Warehouse (concept): 20.5% (79 of 385)
+- Spark (processing): 20.3% (78 of 385)
+- Databricks (platform): 19.2% (74 of 385)
+- Snowflake (warehouse): 18.2% (70 of 385)
+- Power BI (bi): 16.4% (63 of 385)
+- dbt (transformation): 16.1% (62 of 385)
+- Airflow (orchestration): 15.1% (58 of 385)
+- SAP (platform): 15.1% (58 of 385)
+- Kubernetes (platform): 13.5% (52 of 385)
+- Docker (platform): 12.2% (47 of 385)
+- Kafka (streaming): 12.2% (47 of 385)
+- Terraform (platform): 11.2% (43 of 385)
+- Java (language): 10.9% (42 of 385)
+- Google Cloud (cloud): 10.4% (40 of 385)
+- PostgreSQL (database): 9.4% (36 of 385)
+- Microsoft Fabric (platform): 8.3% (32 of 385)
+- Azure Data Factory (orchestration): 6.5% (25 of 385)
+- Dagster (orchestration): 5.2% (20 of 385)
+- Oracle (database): 5.2% (20 of 385)
+- SQL Server (database): 4.7% (18 of 385)
+- Scala (language): 4.4% (17 of 385)
+- Flink (streaming): 4.2% (16 of 385)
+- BigQuery (warehouse): 3.9% (15 of 385)
+- Tableau (bi): 3.9% (15 of 385)
+- Azure Synapse (warehouse): 2.9% (11 of 385)
+- MongoDB (database): 2.1% (8 of 385)
+- Redshift (warehouse): 1.8% (7 of 385)
+- Looker (bi): 1.0% (4 of 385)
 
 ## German-language requirement
 
 Only an explicit competency phrase counts as requiring German, and most German postings are written in German regardless, so the German shares are floors, not ceilings.
 
-- All postings: 42.0% (163 of 388) state a German requirement; 30.2% (117 of 388) mention English without requiring German
-- Bundesagentur für Arbeit: 45.6% (157 of 344) state a German requirement; 24.4% (84 of 344) mention English without requiring German
-- Arbeitnow: 13.6% (6 of 44) state a German requirement; 75.0% (33 of 44) mention English without requiring German
+- All postings: 40.8% (157 of 385) state a German requirement; 31.4% (121 of 385) mention English without requiring German
+- Bundesagentur für Arbeit: 44.7% (152 of 340) state a German requirement; 25.6% (87 of 340) mention English without requiring German
+- Arbeitnow: 11.1% (5 of 45) state a German requirement; 75.6% (34 of 45) mention English without requiring German
 
 ## Median advertised salary by tool
 
 Advertised, not paid. Only a minority of postings state a salary, tools with fewer than three that do are left out, and n is the number of postings each median is taken over.
 
 - Databricks: €70,000 to €85,000 (n=5)
+- dbt: €70,000 to €85,000 (n=8)
+- ETL / ELT: €70,000 to €85,000 (n=23)
 - Java: €70,000 to €85,000 (n=5)
-- Snowflake: €70,000 to €82,500 (n=6)
+- SAP: €70,000 to €85,000 (n=8)
+- Snowflake: €70,000 to €85,000 (n=8)
 - Terraform: €70,000 to €85,000 (n=3)
 - Data Warehouse: €70,000 to €81,000 (n=8)
-- ETL / ELT: €69,143 to €83,500 (n=22)
 - Power BI: €69,143 to €89,603 (n=6)
-- SAP: €69,143 to €83,500 (n=6)
+- SQL: €69,143 to €85,000 (n=22)
+- AWS: €67,500 to €82,500 (n=8)
 - BigQuery: €67,500 to €86,000 (n=4)
-- dbt: €67,500 to €80,000 (n=6)
 - Docker: €67,500 to €85,000 (n=4)
-- SQL: €66,643 to €82,500 (n=20)
 - Airflow: €65,000 to €80,000 (n=6)
-- AWS: €65,000 to €80,000 (n=7)
 - Kafka: €65,000 to €85,000 (n=7)
 - Kubernetes: €65,000 to €85,000 (n=7)
 - Data Lake / Lakehouse: €65,000 to €81,000 (n=12)
@@ -76,21 +76,21 @@ Advertised, not paid. Only a minority of postings state a salary, tools with few
 - Google Cloud: €62,500 to €77,500 (n=4)
 - Azure: €60,000 to €80,000 (n=11)
 - PostgreSQL: €60,000 to €81,600 (n=4)
-- Python: €60,000 to €80,000 (n=26)
+- Python: €60,000 to €80,000 (n=27)
 - SQL Server: €52,000 to €77,000 (n=4)
 
 ## Cities with the most postings
 
-- Berlin: 40 postings
+- Berlin: 38 postings
 - München: 32 postings
 - Hamburg: 25 postings
-- Köln: 20 postings
-- Frankfurt am Main: 19 postings
-- Unknown: 17 postings
+- Unknown: 22 postings
+- Köln: 19 postings
+- Frankfurt am Main: 18 postings
 - Stuttgart: 16 postings
 - Dresden: 13 postings
+- Erlangen: 12 postings
 - Düsseldorf: 10 postings
-- Erlangen: 10 postings
 - Hannover: 8 postings
 - Bonn: 7 postings
 

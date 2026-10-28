@@ -1,0 +1,24 @@
+skill_key,display_name,category,postings_with_salary,median_salary_from,median_salary_to,min_salary_from,max_salary_to
+databricks,Databricks,platform,5,70000,85000,50000,91072
+dbt,dbt,transformation,8,70000,85000,55000,85000
+etl,ETL / ELT,concept,23,70000,85000,50000,108000
+java,Java,language,5,70000,85000,55000,95000
+sap,SAP,platform,8,70000,85000,56000,91072
+snowflake,Snowflake,warehouse,8,70000,85000,60000,90000
+terraform,Terraform,platform,3,70000,85000,60000,90000
+warehouse,Data Warehouse,concept,8,70000,81000,50000,90000
+powerbi,Power BI,bi,6,69143,89603,50000,103380
+sql,SQL,language,22,69143,85000,40000,103380
+aws,AWS,cloud,8,67500,82500,55000,85000
+bigquery,BigQuery,warehouse,4,67500,86000,60000,90000
+docker,Docker,platform,4,67500,85000,40000,85000
+airflow,Airflow,orchestration,6,65000,80000,55000,95000
+kafka,Kafka,streaming,7,65000,85000,58000,95000
+kubernetes,Kubernetes,platform,7,65000,85000,59000,95000
+lakehouse,Data Lake / Lakehouse,concept,12,65000,81000,50000,90000
+spark,Spark,processing,11,65000,80000,50000,103380
+gcp,Google Cloud,cloud,4,62500,77500,58000,85000
+azure,Azure,cloud,11,60000,80000,50000,90000
+postgres,PostgreSQL,database,4,60000,81600,50044,87000
+python,Python,language,27,60000,80000,40000,103380
+sqlserver,SQL Server,database,4,52000,77000,50000,85000
