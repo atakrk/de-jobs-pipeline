@@ -1,0 +1,45 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,39,12,2,55000
+München,BAYERN,32,3,0,
+Hamburg,HAMBURG,28,13,2,75000
+Unknown,,24,2,1,70000
+Köln,NORDRHEIN_WESTFALEN,19,3,1,58000
+Frankfurt am Main,HESSEN,18,2,3,59000
+Stuttgart,BADEN_WUERTTEMBERG,17,3,1,50000
+Erlangen,BAYERN,13,0,6,70000
+Dresden,SACHSEN,11,3,1,75000
+Düsseldorf,NORDRHEIN_WESTFALEN,9,2,1,72724
+Hannover,NIEDERSACHSEN,8,3,1,68286
+Bonn,NORDRHEIN_WESTFALEN,7,2,2,55022
+"Bad Grönenbach, Allgäu",BAYERN,5,0,0,
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,5,2,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,5,0,3,70000
+Leipzig,SACHSEN,5,0,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,5,3,0,
+Ratingen,NORDRHEIN_WESTFALEN,5,1,0,
+"Nürnberg, Mittelfranken",BAYERN,4,0,0,
+"Ulm, Donau",BADEN_WUERTTEMBERG,4,2,0,
+Donauwörth,BAYERN,3,0,2,60500
+Dortmund,NORDRHEIN_WESTFALEN,3,0,1,57600
+Duisburg,NORDRHEIN_WESTFALEN,3,0,1,60000
+Kiel,SCHLESWIG_HOLSTEIN,3,1,1,40000
+Mannheim,BADEN_WUERTTEMBERG,3,0,0,
+Wiesbaden,HESSEN,3,0,0,
+Bad Homburg vor der Höhe,HESSEN,2,0,1,103380
+Bochum,NORDRHEIN_WESTFALEN,2,1,0,
+Bremen,BREMEN,2,0,0,
+Burgwedel,NIEDERSACHSEN,2,0,0,
+"Chemnitz, Sachsen",SACHSEN,2,1,1,55000
+"Essenbach, Niederbayern",BAYERN,2,0,0,
+Kamp-Lintfort,NORDRHEIN_WESTFALEN,2,1,0,
+"Kassel, Hessen",HESSEN,2,1,0,
+Mülheim an der Ruhr,NORDRHEIN_WESTFALEN,2,0,0,
+Neuss,NORDRHEIN_WESTFALEN,2,1,0,
+Nördlingen,BAYERN,2,0,0,
+Oberkochen,BADEN_WUERTTEMBERG,2,0,1,70000
+Potsdam,BRANDENBURG,2,0,0,
+"Rosenheim, Oberbayern",BAYERN,2,0,1,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Schrobenhausen,BAYERN,2,0,1,55000
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,2,52500
+Weiterstadt,HESSEN,2,0,0,
