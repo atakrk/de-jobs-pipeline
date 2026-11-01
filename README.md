@@ -19,7 +19,7 @@ so any number here can be traced back to the run that produced it.
 
 <!-- FINDINGS:START -->
 
-*Postings still being advertised across the 7 daily runs from 2026-10-25 to 2026-10-31. A posting leaves these figures once the sources stop listing it, so this is what the market is asking for now rather than one morning's sample.*
+*Postings still being advertised across the 7 daily runs from 2026-10-26 to 2026-11-01. A posting leaves these figures once the sources stop listing it, so this is what the market is asking for now rather than one morning's sample.*
 
 **405 postings** after scope filtering, location validation and deduplication; **405** of them carry a description long enough to read requirements from. Every percentage on this page is a share of those 405.
 
@@ -39,22 +39,22 @@ Stages in the order the pipeline applies them. The last row is the denominator a
 
 | stage | unit | records | of previous | of rows read |
 | --- | --- | ---: | ---: | ---: |
-| rows read | posting-run | 69,714 | — | 100.0% |
-| distinct postings | posting-run | 62,733 | 90.0% | 90.0% |
-| title in scope | posting-run | 13,143 | 21.0% | 18.9% |
-| in germany | posting-run | 10,138 | 77.1% | 14.5% |
-| latest snapshot | posting | 854 | 8.4% \* | 1.2% |
-| still advertised | posting | 444 | 52.0% | 0.6% |
-| deduplicated | posting | 405 | 91.2% | 0.6% |
+| rows read | posting-run | 72,237 | — | 100.0% |
+| distinct postings | posting-run | 65,048 | 90.0% | 90.0% |
+| title in scope | posting-run | 13,594 | 20.9% | 18.8% |
+| in germany | posting-run | 10,467 | 77.0% | 14.5% |
+| latest snapshot | posting | 857 | 8.2% \* | 1.2% |
+| still advertised | posting | 439 | 51.2% | 0.6% |
+| deduplicated | posting | 405 | 92.3% | 0.6% |
 | with description | posting | 405 | 100.0% | 0.6% |
 
-\* The unit changes at **latest snapshot**: the several daily records of one posting collapse into one. Nothing is rejected there, so 8.4% is that collapse and not a survival rate.
+\* The unit changes at **latest snapshot**: the several daily records of one posting collapse into one. Nothing is rejected there, so 8.2% is that collapse and not a survival rate.
 
 ### Language requirement
 
 | requires German | mentions English, no German requirement | neither stated |
 | --- | --- | --- |
-| **41.2%** | **33.1%** | **25.7%** |
+| **41.2%** | **32.8%** | **25.9%** |
 
 <!-- FINDINGS:END -->
 

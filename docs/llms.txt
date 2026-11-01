@@ -2,15 +2,15 @@
 
 > What data engineering job postings in Germany ask for: tools, German-language requirements, cities and advertised salaries. Counted every morning from two public job APIs. Open source; every figure traces to a committed daily snapshot.
 
-Figures from the run of 31 October 2026, tracked daily since 11 September 2026. Every percentage is a share of the 405 currently advertised postings that carried a description to read.
+Figures from the run of 1 November 2026, tracked daily since 11 September 2026. Every percentage is a share of the 405 currently advertised postings that carried a description to read.
 
 ## Tools named in postings
 
 A posting counts once per tool, however often it names it.
 
-- Python (language): 61.2% (248 of 405)
-- SQL (language): 58.8% (238 of 405)
-- ETL / ELT (concept): 57.8% (234 of 405)
+- Python (language): 61.5% (249 of 405)
+- SQL (language): 59.3% (240 of 405)
+- ETL / ELT (concept): 57.5% (233 of 405)
 - Azure (cloud): 31.9% (129 of 405)
 - AWS (cloud): 24.4% (99 of 405)
 - Data Lake / Lakehouse (concept): 23.0% (93 of 405)
@@ -21,9 +21,9 @@ A posting counts once per tool, however often it names it.
 - dbt (transformation): 17.3% (70 of 405)
 - Power BI (bi): 16.3% (66 of 405)
 - SAP (platform): 15.6% (63 of 405)
-- Airflow (orchestration): 14.3% (58 of 405)
-- Kubernetes (platform): 12.8% (52 of 405)
-- Docker (platform): 12.6% (51 of 405)
+- Airflow (orchestration): 14.6% (59 of 405)
+- Kubernetes (platform): 12.6% (51 of 405)
+- Docker (platform): 12.3% (50 of 405)
 - Kafka (streaming): 11.6% (47 of 405)
 - Terraform (platform): 11.4% (46 of 405)
 - Google Cloud (cloud): 10.6% (43 of 405)
@@ -32,8 +32,8 @@ A posting counts once per tool, however often it names it.
 - Microsoft Fabric (platform): 8.4% (34 of 405)
 - Azure Data Factory (orchestration): 5.9% (24 of 405)
 - Oracle (database): 5.4% (22 of 405)
+- BigQuery (warehouse): 4.9% (20 of 405)
 - SQL Server (database): 4.9% (20 of 405)
-- BigQuery (warehouse): 4.7% (19 of 405)
 - Dagster (orchestration): 4.7% (19 of 405)
 - Scala (language): 4.4% (18 of 405)
 - Tableau (bi): 3.7% (15 of 405)
@@ -47,9 +47,9 @@ A posting counts once per tool, however often it names it.
 
 Only an explicit competency phrase counts as requiring German, and most German postings are written in German regardless, so the German shares are floors, not ceilings.
 
-- All postings: 41.2% (167 of 405) state a German requirement; 33.1% (134 of 405) mention English without requiring German
-- Bundesagentur für Arbeit: 45.5% (158 of 347) state a German requirement; 26.2% (91 of 347) mention English without requiring German
-- Arbeitnow: 15.5% (9 of 58) state a German requirement; 74.1% (43 of 58) mention English without requiring German
+- All postings: 41.2% (167 of 405) state a German requirement; 32.8% (133 of 405) mention English without requiring German
+- Bundesagentur für Arbeit: 45.8% (158 of 345) state a German requirement; 26.1% (90 of 345) mention English without requiring German
+- Arbeitnow: 15.0% (9 of 60) state a German requirement; 71.7% (43 of 60) mention English without requiring German
 
 ## Median advertised salary by tool
 
@@ -82,9 +82,9 @@ Advertised, not paid. Only a minority of postings state a salary, tools with few
 
 ## Cities with the most postings
 
-- Berlin: 43 postings
-- München: 39 postings
-- Hamburg: 27 postings
+- Berlin: 44 postings
+- München: 40 postings
+- Hamburg: 26 postings
 - Unknown: 22 postings
 - Frankfurt am Main: 20 postings
 - Köln: 20 postings
