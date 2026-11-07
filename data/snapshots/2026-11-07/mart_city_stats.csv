@@ -1,0 +1,49 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,44,13,2,55000
+München,BAYERN,27,4,0,
+Köln,NORDRHEIN_WESTFALEN,22,3,2,64000
+Hamburg,HAMBURG,21,8,2,75000
+Unknown,,21,2,1,70000
+Stuttgart,BADEN_WUERTTEMBERG,16,3,1,50000
+Frankfurt am Main,HESSEN,13,1,1,70000
+Düsseldorf,NORDRHEIN_WESTFALEN,12,2,1,66000
+Erlangen,BAYERN,12,0,3,70000
+Dresden,SACHSEN,11,2,1,75000
+Hannover,NIEDERSACHSEN,7,3,1,68286
+Bonn,NORDRHEIN_WESTFALEN,6,2,1,50044
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,6,3,1,59000
+"Nürnberg, Mittelfranken",BAYERN,6,0,0,
+"Bad Grönenbach, Allgäu",BAYERN,5,0,0,
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,5,2,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,5,0,3,65000
+Leipzig,SACHSEN,4,0,0,
+"Ulm, Donau",BADEN_WUERTTEMBERG,4,2,0,
+Bremen,BREMEN,3,0,0,
+Donauwörth,BAYERN,3,0,2,60500
+Duisburg,NORDRHEIN_WESTFALEN,3,0,1,60000
+Kiel,SCHLESWIG_HOLSTEIN,3,1,1,40000
+Oberkochen,BADEN_WUERTTEMBERG,3,0,1,70000
+Wiesbaden,HESSEN,3,0,0,
+Bochum,NORDRHEIN_WESTFALEN,2,1,0,
+Burgwedel,NIEDERSACHSEN,2,0,0,
+Bönen,NORDRHEIN_WESTFALEN,2,0,0,
+"Chemnitz, Sachsen",SACHSEN,2,1,1,55000
+"Essenbach, Niederbayern",BAYERN,2,0,0,
+Garching bei München,BAYERN,2,0,0,
+Kamp-Lintfort,NORDRHEIN_WESTFALEN,2,1,0,
+"Kassel, Hessen",HESSEN,2,1,0,
+Laupheim,BADEN_WUERTTEMBERG,2,0,0,
+Mainz am Rhein,RHEINLAND_PFALZ,2,0,2,65000
+Manching,BAYERN,2,0,1,70000
+Mannheim,BADEN_WUERTTEMBERG,2,0,1,70000
+Mülheim an der Ruhr,NORDRHEIN_WESTFALEN,2,0,0,
+Nördlingen,BAYERN,2,0,0,
+Oldenburg (Oldb),NIEDERSACHSEN,2,1,0,
+Osnabrück,NIEDERSACHSEN,2,1,2,59500
+Ottobrunn,BAYERN,2,0,1,65000
+Potsdam,BRANDENBURG,2,0,0,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Schrobenhausen,BAYERN,2,0,1,55000
+Unterschleißheim,BAYERN,2,0,0,
+"Walldorf, Baden",BADEN_WUERTTEMBERG,2,0,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,2,52500
