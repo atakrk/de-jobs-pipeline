@@ -1,0 +1,46 @@
+city,region,postings,home_office_postings,postings_with_salary,median_salary_from
+Berlin,BERLIN,51,11,2,55000
+München,BAYERN,30,4,0,
+Köln,NORDRHEIN_WESTFALEN,24,4,1,58000
+Unknown,,23,2,2,72500
+Hamburg,HAMBURG,19,5,3,70000
+Frankfurt am Main,HESSEN,16,2,1,70000
+Stuttgart,BADEN_WUERTTEMBERG,14,2,3,70000
+Dresden,SACHSEN,12,2,1,75000
+Düsseldorf,NORDRHEIN_WESTFALEN,11,3,1,66000
+Erlangen,BAYERN,9,0,2,70000
+Hannover,NIEDERSACHSEN,8,3,1,68286
+"Nürnberg, Mittelfranken",BAYERN,7,0,0,
+"Bad Grönenbach, Allgäu",BAYERN,6,0,0,
+Leipzig,SACHSEN,6,0,0,
+"Essen, Ruhr",NORDRHEIN_WESTFALEN,4,2,0,
+Oberkochen,BADEN_WUERTTEMBERG,4,0,1,70000
+Burgwedel,NIEDERSACHSEN,3,0,0,
+Donauwörth,BAYERN,3,0,2,60500
+Duisburg,NORDRHEIN_WESTFALEN,3,0,1,60000
+Garching bei München,BAYERN,3,0,0,
+"Karlsruhe, Baden",BADEN_WUERTTEMBERG,3,0,0,
+"Münster, Westfalen",NORDRHEIN_WESTFALEN,3,2,0,
+Osnabrück,NIEDERSACHSEN,3,2,2,59500
+"Ulm, Donau",BADEN_WUERTTEMBERG,3,2,0,
+Wiesbaden,HESSEN,3,0,0,
+"Ansbach, Mittelfranken",BAYERN,2,0,0,
+Biberach an der Riß,BADEN_WUERTTEMBERG,2,0,0,
+Bochum,NORDRHEIN_WESTFALEN,2,1,0,
+Bönen,NORDRHEIN_WESTFALEN,2,0,0,
+"Chemnitz, Sachsen",SACHSEN,2,1,1,55000
+Dortmund,NORDRHEIN_WESTFALEN,2,0,1,57600
+Hanau,HESSEN,2,0,0,
+Kamp-Lintfort,NORDRHEIN_WESTFALEN,2,1,0,
+Laupheim,BADEN_WUERTTEMBERG,2,0,0,
+Mainz am Rhein,RHEINLAND_PFALZ,2,0,2,65000
+Manching,BAYERN,2,0,1,70000
+Mittweida,SACHSEN,2,1,1,53400
+Neuss,NORDRHEIN_WESTFALEN,2,2,0,
+Nördlingen,BAYERN,2,0,0,
+Potsdam,BRANDENBURG,2,0,0,
+Sankt Augustin,NORDRHEIN_WESTFALEN,2,0,0,
+Schrobenhausen,BAYERN,2,0,1,55000
+Unterschleißheim,BAYERN,2,0,0,
+Versmold,NORDRHEIN_WESTFALEN,2,0,0,
+Weil der Stadt,BADEN_WUERTTEMBERG,2,1,2,52500
