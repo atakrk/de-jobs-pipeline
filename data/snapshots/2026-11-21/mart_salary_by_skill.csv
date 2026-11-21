@@ -1,0 +1,21 @@
+skill_key,display_name,category,postings_with_salary,median_salary_from,median_salary_to,min_salary_from,max_salary_to
+aws,AWS,cloud,4,70000,85000,58000,108500
+bigquery,BigQuery,warehouse,3,70000,87000,60000,90000
+docker,Docker,platform,3,70000,85000,40000,85000
+java,Java,language,4,70000,87500,58000,95000
+kafka,Kafka,streaming,5,70000,85000,58000,95000
+kubernetes,Kubernetes,platform,4,70000,86000,60000,95000
+lakehouse,Data Lake / Lakehouse,concept,8,70000,83500,50000,90000
+snowflake,Snowflake,warehouse,3,70000,85000,70000,90000
+etl,ETL / ELT,concept,22,69143,82000,50000,110000
+databricks,Databricks,platform,4,68000,87500,50000,96000
+sap,SAP,platform,7,66000,82000,44000,96000
+azure,Azure,cloud,8,65500,82500,50000,96000
+spark,Spark,processing,7,65000,85000,50000,95000
+warehouse,Data Warehouse,concept,6,65000,80000,50000,90000
+python,Python,language,16,63000,82500,40000,108500
+sql,SQL,language,18,62900,83500,40000,108500
+oracle,Oracle,database,3,60000,82000,54000,89206
+powerbi,Power BI,bi,8,60000,84103,44000,96000
+sqlserver,SQL Server,database,5,54000,75000,50000,82000
+tableau,Tableau,bi,3,50000,79000,44000,90000
