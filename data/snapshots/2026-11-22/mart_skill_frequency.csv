@@ -1,0 +1,35 @@
+skill_key,display_name,category,postings,postings_with_text,pct_of_postings
+python,Python,language,253,398,63.6
+sql,SQL,language,243,398,61.1
+etl,ETL / ELT,concept,215,398,54.0
+azure,Azure,cloud,123,398,30.9
+spark,Spark,processing,88,398,22.1
+lakehouse,Data Lake / Lakehouse,concept,87,398,21.9
+aws,AWS,cloud,83,398,20.9
+warehouse,Data Warehouse,concept,76,398,19.1
+powerbi,Power BI,bi,69,398,17.3
+snowflake,Snowflake,warehouse,69,398,17.3
+databricks,Databricks,platform,67,398,16.8
+dbt,dbt,transformation,62,398,15.6
+airflow,Airflow,orchestration,57,398,14.3
+kubernetes,Kubernetes,platform,54,398,13.6
+kafka,Kafka,streaming,49,398,12.3
+sap,SAP,platform,48,398,12.1
+docker,Docker,platform,46,398,11.6
+terraform,Terraform,platform,44,398,11.1
+java,Java,language,42,398,10.6
+gcp,Google Cloud,cloud,39,398,9.8
+fabric,Microsoft Fabric,platform,30,398,7.5
+postgres,PostgreSQL,database,28,398,7.0
+datafactory,Azure Data Factory,orchestration,24,398,6.0
+dagster,Dagster,orchestration,23,398,5.8
+sqlserver,SQL Server,database,22,398,5.5
+tableau,Tableau,bi,22,398,5.5
+bigquery,BigQuery,warehouse,19,398,4.8
+oracle,Oracle,database,17,398,4.3
+scala,Scala,language,17,398,4.3
+flink,Flink,streaming,16,398,4.0
+synapse,Azure Synapse,warehouse,10,398,2.5
+looker,Looker,bi,8,398,2.0
+mongodb,MongoDB,database,7,398,1.8
+redshift,Redshift,warehouse,7,398,1.8
